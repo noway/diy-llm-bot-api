@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import fs from "fs";
+import https from "https";
 
 require("dotenv").config();
 
@@ -112,6 +114,12 @@ app.post("/generate-chat-completion", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+https
+  .createServer(
+    {
+      key: fs.readFileSync("./localhost-key.pem"),
+      cert: fs.readFileSync("./localhost.pem"),
+    },
+    app
+  )
+  .listen(port);
