@@ -117,8 +117,8 @@ app.post("/generate-chat-completion", async (req, res) => {
 https
   .createServer(
     {
-      key: fs.readFileSync("./localhost-key.pem"),
-      cert: fs.readFileSync("./localhost.pem"),
+      key: fs.readFileSync("./key.pem"),
+      cert: fs.readFileSync("./cert.pem"),
     },
     app
   )
