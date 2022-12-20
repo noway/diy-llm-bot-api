@@ -9,13 +9,13 @@ You can try it out on [diy-llm-bot.netlify.app](https://diy-llm-bot.netlify.app/
 In development:
 
 ```bash
-yarn start
+yarn dev
 ```
 
 In production:
 
 ```bash
-pm2 start yarn --name diy-llm-bot-api -- prod
+pm2 start yarn --name diy-llm-bot-api -- start
 ```
 
 ## Links
