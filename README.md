@@ -17,3 +17,7 @@ In production:
 ```bash
 pm2 start yarn --name diy-llm-bot-api -- prod
 ```
+
+## Links
+
+- Frontend repo: [noway/diy-llm-bot](https://github.com/noway/diy-llm-bot)
