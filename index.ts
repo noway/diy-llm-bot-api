@@ -81,8 +81,13 @@ app.get("/", async (req, res) => {
   res.contentType("text").send("OK");
 });
 app.post("/generate-chat-completion", async (req, res) => {
-  const messages = req.body.messages as Message[];
-  const model = (req.body.model ?? "text-davinci-002") as string;
+  const forceJson = req.query["force-json"] == "true";
+  let body = req.body;
+  if (forceJson && typeof body == "string") {
+    body = JSON.parse(body);
+  }
+  const messages = body.messages as Message[];
+  const model = (body.model ?? "text-davinci-002") as string;
   const humanMessages = messages.filter((m) => m.party == "human");
   const lastHumanMessage = humanMessages[humanMessages.length - 1];
   console.log("model", model);
