@@ -82,10 +82,10 @@ app.get("/", async (req, res) => {
 });
 app.post("/generate-chat-completion", async (req, res) => {
   const messages = req.body.messages as Message[];
+  const model = (req.body.model ?? "text-davinci-002") as string;
   console.log("messages[messages.length - 1]", messages[messages.length - 1]);
   try {
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
-    const model = "text-davinci-002";
     const temperature = 0.5;
     const options = {
       method: "POST",
