@@ -83,7 +83,10 @@ app.get("/", async (req, res) => {
 app.post("/generate-chat-completion", async (req, res) => {
   const messages = req.body.messages as Message[];
   const model = (req.body.model ?? "text-davinci-002") as string;
-  console.log("messages[messages.length - 1]", messages[messages.length - 1]);
+  const humanMessages = messages.filter((m) => m.party == "human");
+  const lastHumanMessage = humanMessages[humanMessages.length - 1];
+  console.log("model", model);
+  console.log("human-prompt", lastHumanMessage.text);
   try {
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
     const temperature = 0.5;
