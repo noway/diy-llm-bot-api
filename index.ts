@@ -109,7 +109,7 @@ app.post("/generate-chat-completion", async (req, res) => {
     );
     const body = (await response.json()) as OpenAICompletionResponse;
     const completion = body["choices"][0]["text"];
-    console.log("completion", completion);
+    console.log("completion", completion.trim());
     // send json
     res.send(JSON.stringify({ success: true, completion }));
   } catch (error) {
