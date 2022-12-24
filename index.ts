@@ -44,6 +44,31 @@ interface Message {
   timestamp: number;
 }
 
+interface Data {
+  id: string;
+  object: string;
+  created: number;
+  choices: Choice[];
+  model: string;
+}
+
+function chunkToDataArray(chunkString: string): Data[] {
+  const dataLines = chunkString.split("\n\n");
+  const dataArray: Data[] = [];
+  for (let i = 0; i < dataLines.length; i++) {
+    const dataLine = dataLines[i];
+    if (dataLine.startsWith("data: ")) {
+      if (dataLine == "data: [DONE]") {
+        return dataArray;
+      }
+      const dataString = dataLine.slice("data: ".length);
+      const data = JSON.parse(dataString);
+      dataArray.push(data);
+    }
+  }
+  return dataArray;
+}
+
 function generatePrompt(messages: Message[]) {
   messages = messages.slice(-25); // sliding window
 
@@ -117,6 +142,75 @@ app.post("/generate-chat-completion", async (req, res) => {
     console.log("completion", completion.trim());
     // send json
     res.send(JSON.stringify({ success: true, completion }));
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, error: { message: (error as Error).message } });
+  }
+});
+
+app.post("/generate-chat-completion-streaming", async (req, res) => {
+  const forceJson = req.query["force-json"] == "true";
+  let body = req.body;
+  if (forceJson && typeof body == "string") {
+    body = JSON.parse(body);
+  }
+  const messages = body.messages as Message[];
+  const model = (body.model ?? "text-davinci-002") as string;
+  const humanMessages = messages.filter((m) => m.party == "human");
+  const lastHumanMessage = humanMessages[humanMessages.length - 1];
+  console.log("model", model);
+  console.log("human-prompt", lastHumanMessage.text);
+  try {
+    const BEARER_TOKEN = process.env.BEARER_TOKEN;
+    const temperature = 0.5;
+    const options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${BEARER_TOKEN}`,
+      },
+      body: JSON.stringify({
+        model,
+        prompt: generatePrompt(messages),
+        temperature,
+        max_tokens: 1024,
+        stream: true,
+        stop: "END_OF_STREAM",
+      }),
+    };
+    const response = await fetch(
+      "https://api.openai.com/v1/completions",
+      options
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    // send json
+    res.set({ "transfer-encoding": "chunked" });
+
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      // Convert the binary data to a string
+      const dataString = new TextDecoder().decode(value);
+      const dataArray = chunkToDataArray(dataString);
+
+      for (let i = 0; i < dataArray.length; i++) {
+        const data = dataArray[i];
+        const token = data.choices[0].text;
+        res.write(token);
+      }
+    }
+    res.end();
   } catch (error) {
     console.error(error);
     res.json({ success: false, error: { message: (error as Error).message } });
