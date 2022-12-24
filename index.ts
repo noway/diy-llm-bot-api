@@ -40,8 +40,9 @@ interface OpenAICompletionResponse {
 
 interface Message {
   text: string;
+  name: "You" | "Bot";
   party: "bot" | "human";
-  timestamp: number;
+  id: number;
 }
 
 interface Data {
