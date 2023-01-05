@@ -5,11 +5,18 @@ import https from "https";
 
 require("dotenv").config();
 
+const origins = [
+  process.env.FRONTEND_URL_1,
+  process.env.FRONTEND_URL_2,
+].flatMap((f) => (f ? [f] : []));
+
+console.log("origins", origins)
+
 const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: origins,
   })
 );
 app.use(express.text());
