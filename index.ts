@@ -10,7 +10,7 @@ const origins = [
   process.env.FRONTEND_URL_2,
 ].flatMap((f) => (f ? [f] : []));
 
-console.log("origins", origins)
+console.log("origins", origins);
 
 const app = express();
 app.use(express.json());
