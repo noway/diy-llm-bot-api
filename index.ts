@@ -175,8 +175,14 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     res.end();
     console.log("completion", completion.trim());
   } catch (error) {
-    console.error(error);
-    res.json({ success: false, error: { message: (error as Error).message } });
+    console.error('error', error);
+    try {
+      res.json({ success: false, error: { message: (error as Error).message } });
+    }
+    catch (e) {
+      console.error('e', e);
+      // do nothing
+    }
   }
 });
 
