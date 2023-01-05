@@ -145,6 +145,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     res.set({ "transfer-encoding": "chunked" });
 
     const reader = response.body.getReader();
+    let completion = "";
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
@@ -159,9 +160,11 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         const data = dataArray[i];
         const token = data.choices[0].text;
         res.write(token);
+        completion += token;
       }
     }
     res.end();
+    console.log("completion", completion.trim());
   } catch (error) {
     console.error(error);
     res.json({ success: false, error: { message: (error as Error).message } });
