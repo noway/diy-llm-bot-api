@@ -143,7 +143,8 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const text = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
     }
     if (!response.body) {
       throw new Error("No response body");
