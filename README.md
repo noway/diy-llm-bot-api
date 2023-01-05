@@ -2,7 +2,7 @@
 API counterpart for [github.com/noway/diy-llm-bot](https://github.com/noway/diy-llm-bot).
 
 ## Try it out
-You can try it out on [diy-llm-bot.netlify.app](https://diy-llm-bot.netlify.app/).
+You can try it out on [diy-llm-bot.com](https://diy-llm-bot.com/).
 
 ## Running
 
