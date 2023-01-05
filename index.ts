@@ -2,8 +2,13 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import https from "https";
+import GPT3Tokenizer from "gpt3-tokenizer";
 
 require("dotenv").config();
+
+const MAX_TOKENS = 4097;
+const TOKENS_SAFETY_MARGIN = 25;
+const tokenizer = new GPT3Tokenizer({ type: "codex" });
 
 const origins = [
   process.env.FRONTEND_URL_1,
@@ -111,6 +116,9 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
   const lastHumanMessage = humanMessages[humanMessages.length - 1];
   console.log("model", model);
   console.log("human-prompt", lastHumanMessage.text);
+  const prompt = generatePrompt(messages);
+  const encoded: { bpe: number[]; text: string[] } = tokenizer.encode(prompt);
+  const promptTokens = encoded.bpe.length;
   try {
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
     const temperature = 0.5;
@@ -122,9 +130,9 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       },
       body: JSON.stringify({
         model,
-        prompt: generatePrompt(messages),
+        prompt,
         temperature,
-        max_tokens: 1024,
+        max_tokens: MAX_TOKENS - promptTokens - TOKENS_SAFETY_MARGIN,
         stream: true,
         stop: "END_OF_STREAM",
       }),
