@@ -23,21 +23,6 @@ interface Choice {
   finish_reason: string;
 }
 
-interface Usage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-interface OpenAICompletionResponse {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: Choice[];
-  usage: Usage;
-}
-
 interface Message {
   text: string;
   name: "You" | "Bot";
@@ -105,48 +90,6 @@ Feel free to ask me anything and I will do my best to help.
 
 app.get("/", async (req, res) => {
   res.contentType("text").send("OK");
-});
-app.post("/generate-chat-completion", async (req, res) => {
-  const forceJson = req.query["force-json"] == "true";
-  let body = req.body;
-  if (forceJson && typeof body == "string") {
-    body = JSON.parse(body);
-  }
-  const messages = body.messages as Message[];
-  const model = (body.model ?? "text-davinci-002") as string;
-  const humanMessages = messages.filter((m) => m.party == "human");
-  const lastHumanMessage = humanMessages[humanMessages.length - 1];
-  console.log("model", model);
-  console.log("human-prompt", lastHumanMessage.text);
-  try {
-    const BEARER_TOKEN = process.env.BEARER_TOKEN;
-    const temperature = 0.5;
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${BEARER_TOKEN}`,
-      },
-      body: JSON.stringify({
-        model,
-        prompt: generatePrompt(messages),
-        temperature,
-        max_tokens: 1024,
-      }),
-    };
-    const response = await fetch(
-      "https://api.openai.com/v1/completions",
-      options
-    );
-    const body = (await response.json()) as OpenAICompletionResponse;
-    const completion = body["choices"][0]["text"];
-    console.log("completion", completion.trim());
-    // send json
-    res.send(JSON.stringify({ success: true, completion }));
-  } catch (error) {
-    console.error(error);
-    res.json({ success: false, error: { message: (error as Error).message } });
-  }
 });
 
 app.post("/generate-chat-completion-streaming", async (req, res) => {
