@@ -105,21 +105,22 @@ app.get("/", async (req, res) => {
 });
 
 app.post("/generate-chat-completion-streaming", async (req, res) => {
-  const forceJson = req.query["force-json"] == "true";
-  let body = req.body;
-  if (forceJson && typeof body == "string") {
-    body = JSON.parse(body);
-  }
-  const messages = body.messages as Message[];
-  const model = (body.model ?? "text-davinci-002") as string;
-  const humanMessages = messages.filter((m) => m.party == "human");
-  const lastHumanMessage = humanMessages[humanMessages.length - 1];
-  console.log("model", model);
-  console.log("human-prompt", lastHumanMessage.text);
-  const prompt = generatePrompt(messages);
-  const encoded: { bpe: number[]; text: string[] } = tokenizer.encode(prompt);
-  const promptTokens = encoded.bpe.length;
   try {
+    const forceJson = req.query["force-json"] == "true";
+    let body = req.body;
+    if (forceJson && typeof body == "string") {
+      body = JSON.parse(body);
+    }
+    const messages = body.messages as Message[];
+    const model = (body.model ?? "text-davinci-002") as string;
+    const humanMessages = messages.filter((m) => m.party == "human");
+    const lastHumanMessage = humanMessages[humanMessages.length - 1];
+    console.log("model", model);
+    console.log("human-prompt", lastHumanMessage.text);
+    const prompt = generatePrompt(messages);
+    const encoded: { bpe: number[]; text: string[] } = tokenizer.encode(prompt);
+    const promptTokens = encoded.bpe.length;
+    
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
     const temperature = 0.5;
     const options = {
