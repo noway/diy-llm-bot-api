@@ -120,7 +120,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     const prompt = generatePrompt(messages);
     const encoded: { bpe: number[]; text: string[] } = tokenizer.encode(prompt);
     const promptTokens = encoded.bpe.length;
-    
+
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
     const temperature = 0.5;
     const options = {
@@ -176,12 +176,14 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     res.end();
     console.log("completion", completion.trim());
   } catch (error) {
-    console.error('error', error);
+    console.error("error", error);
     try {
-      res.json({ success: false, error: { message: (error as Error).message } });
-    }
-    catch (e) {
-      console.error('e', e);
+      res.json({
+        success: false,
+        error: { message: (error as Error).message },
+      });
+    } catch (e) {
+      console.error("e", e);
       // do nothing
     }
   }
