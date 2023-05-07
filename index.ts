@@ -50,9 +50,27 @@ interface Data {
   model: string;
 }
 
-function chunkToDataArray(chunkString: string): Data[] {
+interface ChatData {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: ChatChoice[];
+}
+
+interface ChatChoice {
+  delta: ChatDelta;
+  index: number;
+  finish_reason: string;
+}
+
+interface ChatDelta {
+  content: string;
+}
+
+function chunkToDataArray<T = Data>(chunkString: string): T[] {
   const dataLines = chunkString.split("\n\n");
-  const dataArray: Data[] = [];
+  const dataArray: T[] = [];
   for (let i = 0; i < dataLines.length; i++) {
     const dataLine = dataLines[i];
     if (dataLine.startsWith("data: ")) {
@@ -112,69 +130,134 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       body = JSON.parse(body);
     }
     const messages = body.messages as Message[];
-    const model = (body.model ?? "text-davinci-002") as string;
+    const model = (body.model ?? "gpt-3.5-turbo") as string;
     const humanMessages = messages.filter((m) => m.party == "human");
     const lastHumanMessage = humanMessages[humanMessages.length - 1];
     console.log("model", model);
     console.log("human-prompt", lastHumanMessage.text);
-    const prompt = generatePrompt(messages);
-    const encoded: { bpe: number[]; text: string[] } = tokenizer.encode(prompt);
-    const promptTokens = encoded.bpe.length;
-
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
-    const temperature = 0.5;
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${BEARER_TOKEN}`,
-      },
-      body: JSON.stringify({
-        model,
-        prompt,
-        temperature,
-        max_tokens: MAX_TOKENS - promptTokens - TOKENS_SAFETY_MARGIN,
-        stream: true,
-        stop: "END_OF_STREAM",
-      }),
-    };
-    const response = await fetch(
-      "https://api.openai.com/v1/completions",
-      options
-    );
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
-    }
-    if (!response.body) {
-      throw new Error("No response body");
-    }
-
-    // send json
-    res.set({ "transfer-encoding": "chunked" });
-
-    const reader = response.body.getReader();
-    let completion = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
+    if (model === "gpt-3.5-turbo") {
+      const chatMessages = [
+        {
+          role: "system",
+          content: "You are a helpful AI language model assistant.",
+        },
+        ...messages.map((m) => ({
+          role: m.party == "human" ? "user" : "assistant",
+          content: m.text,
+        })),
+      ];
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${BEARER_TOKEN}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: chatMessages,
+          stream: true,
+          stop: "END_OF_STREAM",
+        }),
+      };
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        options
+      );
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
+      }
+      if (!response.body) {
+        throw new Error("No response body");
       }
 
-      // Convert the binary data to a string
-      const dataString = new TextDecoder().decode(value);
-      const dataArray = chunkToDataArray(dataString);
+      // send json
+      res.set({ "transfer-encoding": "chunked" });
 
-      for (let i = 0; i < dataArray.length; i++) {
-        const data = dataArray[i];
-        const token = data.choices[0].text;
-        res.write(token);
-        completion += token;
+      const reader = response.body.getReader();
+      let completion = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        const dataString = new TextDecoder().decode(value);
+        const dataArray = chunkToDataArray<ChatData>(dataString);
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const data = dataArray[i];
+          const { choices } = data;
+          const lastChoice = choices[choices.length - 1];
+          const { delta } = lastChoice;
+          const content = delta.content ?? "";
+          res.write(content);
+          completion += content;
+        }
       }
+      res.end();
+      console.log("completion", completion);
+    } else {
+      const prompt = generatePrompt(messages);
+      const encoded: { bpe: number[]; text: string[] } =
+        tokenizer.encode(prompt);
+      const promptTokens = encoded.bpe.length;
+
+      const temperature = 0.5;
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${BEARER_TOKEN}`,
+        },
+        body: JSON.stringify({
+          model,
+          prompt,
+          temperature,
+          max_tokens: MAX_TOKENS - promptTokens - TOKENS_SAFETY_MARGIN,
+          stream: true,
+          stop: "END_OF_STREAM",
+        }),
+      };
+      const response = await fetch(
+        "https://api.openai.com/v1/completions",
+        options
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
+      }
+      if (!response.body) {
+        throw new Error("No response body");
+      }
+
+      // send json
+      res.set({ "transfer-encoding": "chunked" });
+
+      const reader = response.body.getReader();
+      let completion = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        // Convert the binary data to a string
+        const dataString = new TextDecoder().decode(value);
+        const dataArray = chunkToDataArray(dataString);
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const data = dataArray[i];
+          const token = data.choices[0].text;
+          res.write(token);
+          completion += token;
+        }
+      }
+      res.end();
+      console.log("completion", completion.trim());
     }
-    res.end();
-    console.log("completion", completion.trim());
   } catch (error) {
     console.error("error", error);
     try {
