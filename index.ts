@@ -211,13 +211,13 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       res.set({ "transfer-encoding": "chunked" });
 
       const reader = response.body.getReader();
+      const doubleNewlineReader = new DoubleNewlineReader(reader);
       let completion = "";
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
         if (done) {
           break;
         }
-        const dataString = new TextDecoder().decode(value);
         const dataArray = chunkToDataArray<ChatData>(dataString);
 
         for (let i = 0; i < dataArray.length; i++) {
