@@ -118,6 +118,40 @@ Feel free to ask me anything and I will do my best to help.
   return prompt;
 }
 
+
+class DoubleNewlineReader {
+  reader: ReadableStreamDefaultReader<BufferSource>;
+  buffer: string;
+
+  constructor(reader: ReadableStreamDefaultReader<BufferSource>) {
+    this.reader = reader;
+    this.buffer = '';
+  }
+
+  async readUntilDoubleNewline() {
+    while (true) {
+      const pos = this.buffer.indexOf('\n\n');
+      if (pos !== -1) {
+        const upToDoubleNewline = this.buffer.substring(0, pos + 2);
+        this.buffer = this.buffer.substring(pos + 2);
+        return { done: false, value: upToDoubleNewline };
+      }
+      const { done, value } = await this.reader.read();
+      if (done) {
+        if (this.buffer.length) {
+          const remaining = this.buffer;
+          this.buffer = '';
+          return { done: true, value: remaining };  // Return what's left if the stream is done
+        }
+        break;
+      }
+      const dataString = new TextDecoder().decode(value);
+      this.buffer += dataString;  // Assuming value is a string; adjust if not
+    }
+    return { done: true, value: this.buffer };
+  }
+}
+
 app.get("/", async (req, res) => {
   res.contentType("text").send("OK");
 });
@@ -237,15 +271,15 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       res.set({ "transfer-encoding": "chunked" });
 
       const reader = response.body.getReader();
+      const doubleNewlineReader = new DoubleNewlineReader(reader);
       let completion = "";
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
         if (done) {
           break;
         }
 
         // Convert the binary data to a string
-        const dataString = new TextDecoder().decode(value);
         const dataArray = chunkToDataArray(dataString);
 
         for (let i = 0; i < dataArray.length; i++) {
