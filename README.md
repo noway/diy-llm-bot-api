@@ -9,13 +9,13 @@ You can try it out on [diy-llm-bot.com](https://diy-llm-bot.com/).
 In development:
 
 ```bash
-yarn dev
+bun dev
 ```
 
 In production:
 
 ```bash
-pm2 start yarn --name diy-llm-bot-api -- start
+pm2 start bun --name diy-llm-bot-api -- start
 ```
 
 ## Links
