@@ -55,7 +55,7 @@ interface ChatData {
   object: string;
   created: number;
   model: string;
-  choices: ChatChoice[];
+  choices?: ChatChoice[];
 }
 
 interface ChatChoice {
@@ -223,6 +223,9 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         for (let i = 0; i < dataArray.length; i++) {
           const data = dataArray[i];
           const { choices } = data;
+          if (!choices) {
+            continue
+          }
           const lastChoice = choices[choices.length - 1];
           const { delta } = lastChoice;
           const content = delta.content ?? "";
