@@ -158,12 +158,10 @@ app.get("/", async (req, res) => {
 
 app.post("/generate-chat-completion-streaming", async (req, res) => {
   try {
-    // TODO: forceJson is always true now, tidy up
-    const forceJson = true;
-    let body = req.body;
-    if (forceJson && typeof body == "string") {
-      body = JSON.parse(body);
+    if (typeof req.body !== "string") {
+      throw new Error("body is not a string");
     }
+    const body = JSON.parse(req.body);
     const messages = body.messages as Message[];
     const model = (body.model ?? "gpt-3.5-turbo") as string;
     const humanMessages = messages.filter((m) => m.party == "human");
