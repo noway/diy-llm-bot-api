@@ -158,7 +158,7 @@ app.get("/", async (req, res) => {
 
 app.post("/generate-chat-completion-streaming", async (req, res) => {
   try {
-    const forceJson = req.query["force-json"] == "true";
+    const forceJson = true;
     let body = req.body;
     if (forceJson && typeof body == "string") {
       body = JSON.parse(body);
