@@ -162,6 +162,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       throw new Error("body is not a string");
     }
     const body = JSON.parse(req.body);
+    const authKey = body.authKey as string;
     const messages = body.messages as Message[];
     const model = (body.model ?? "gpt-3.5-turbo") as string;
     const humanMessages = messages.filter((m) => m.party == "human");
@@ -170,7 +171,10 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     console.log("human-prompt", lastHumanMessage.text);
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
 
-    if (model === "gpt-3.5-turbo") {
+    if (model === "gpt-3.5-turbo" || model === "gpt-4") {
+      if (model === "gpt-4" && authKey !== process.env.AUTH_KEY) {
+        throw new Error("Invalid auth key");
+      }
       const chatMessages = [
         {
           role: "system",
