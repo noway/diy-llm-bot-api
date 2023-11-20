@@ -204,6 +204,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       );
       if (!response.ok) {
         const text = await response.text();
+        // TODO: send 4xx/5xx status code and don't put error object in text
         throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
       }
       if (!response.body) {
@@ -267,6 +268,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
 
       if (!response.ok) {
         const text = await response.text();
+        // TODO: send 4xx/5xx status code and don't put error object in text
         throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
       }
       if (!response.body) {
