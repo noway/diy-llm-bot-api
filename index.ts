@@ -172,7 +172,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     console.log("human-prompt", lastHumanMessage.text);
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
 
-    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview") {
+    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || model === "mistralai/Mixtral-8x7B-Instruct-v0.1") {
       if (model === "gpt-4" && authKey !== process.env.AUTH_KEY) {
         throw new Error("Invalid auth key");
       }
@@ -200,7 +200,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         }),
       };
       const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
+        "https://api.deepinfra.com/v1/openai/chat/completions",
         options
       );
       if (!response.ok) {
