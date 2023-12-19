@@ -192,7 +192,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BEARER_TOKEN}`,
+          Authorization: `Bearer ${isMixtral ? process.env.DEEPINFRA_BEARER_TOKEN : BEARER_TOKEN}`,
         },
         body: JSON.stringify({
           model,
