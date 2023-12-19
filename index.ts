@@ -177,10 +177,10 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
-        {
+        ...(model !== "mistralai/Mixtral-8x7B-Instruct-v0.1" ? [{
           role: "system",
           content: "You are a helpful AI language model assistant.",
-        },
+        }] : []),
         ...messages.map((m) => ({
           role: m.party == "human" ? "user" : "assistant",
           content: m.text,
