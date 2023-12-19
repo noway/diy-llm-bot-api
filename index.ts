@@ -145,7 +145,8 @@ class DoubleNewlineReader {
         }
         break;
       }
-      const dataString = new TextDecoder().decode(value);
+      let dataString = new TextDecoder().decode(value);
+      dataString = dataString.replace(/\r\n/g, "\n");
       this.buffer += dataString;  // Assuming value is a string; adjust if not
     }
     return { done: true, value: this.buffer };
