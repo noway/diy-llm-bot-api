@@ -72,7 +72,7 @@ function chunkToDataArray<T = Data>(chunkString: string): T[] {
   const dataLines = chunkString.split("\n\n");
   const dataArray: T[] = [];
   for (let i = 0; i < dataLines.length; i++) {
-    const dataLine = dataLines[i];
+    const dataLine = dataLines[i].trim();
     if (dataLine.startsWith("data: ")) {
       if (dataLine == "data: [DONE]") {
         return dataArray;
