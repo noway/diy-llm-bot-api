@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import fs from "fs";
 import https from "https";
@@ -316,6 +316,14 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     }
   }
 });
+
+app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
+  res.status(500).contentType("text").send("Internal server error");
+});
+
+app.use(function (req, res, next) {
+  res.status(404).contentType("text").send("Not found");
+})
 
 https
   .createServer(
