@@ -3,6 +3,7 @@ import cors from "cors";
 import fs from "fs";
 import https from "https";
 import GPT3Tokenizer from "gpt3-tokenizer";
+import { z } from "zod";
 
 require("dotenv").config();
 
@@ -35,12 +36,15 @@ interface Choice {
   finish_reason: string;
 }
 
-interface Message {
-  text: string;
-  name: "You" | "Bot";
-  party: "bot" | "human";
-  id: number;
-}
+const MessageSchema = z.object({
+  text: z.string(),
+  name: z.enum(["You", "Bot"]),
+  party: z.enum(["bot", "human"]),
+  id: z.number(),
+});
+type Message = z.infer<typeof MessageSchema>;
+
+const MessagesSchema = z.array(MessageSchema);
 
 interface Data {
   id: string;
@@ -163,9 +167,9 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       throw new Error("body is not a string");
     }
     const body = JSON.parse(req.body);
-    const authKey = body.authKey as string;
-    const messages = body.messages as Message[];
-    const model = (body.model ?? "gpt-3.5-turbo") as string;
+    const authKey = z.string().parse(body.authKey);
+    const messages = MessagesSchema.parse(body.messages);
+    const model = z.string().parse(body.model);
     const humanMessages = messages.filter((m) => m.party == "human");
     const lastHumanMessage = humanMessages[humanMessages.length - 1];
     console.log("model", model);
