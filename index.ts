@@ -167,7 +167,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       throw new Error("body is not a string");
     }
     const body = JSON.parse(req.body);
-    const authKey = z.string().nullable().parse(body.authKey);
+    const authKey = z.string().optional().parse(body.authKey);
     const messages = MessagesSchema.parse(body.messages);
     const model = z.string().parse(body.model);
     const humanMessages = messages.filter((m) => m.party == "human");
