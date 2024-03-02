@@ -50,7 +50,7 @@ type Message = z.infer<typeof MessageSchema>;
 const MessagesSchema = z.array(MessageSchema);
 
 const CookiesSchema = z.object({
-  authKey: z.string().optional(),
+  "__Secure-authKey": z.string().optional(),
 });
 
 interface Data {
@@ -175,7 +175,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     }
     const cookies = CookiesSchema.parse(req.cookies);
     const body = JSON.parse(req.body);
-    const authKey = cookies.authKey;
+    const authKey = cookies["__Secure-authKey"];
     const messages = MessagesSchema.parse(body.messages);
     const model = z.string().parse(body.model);
     const humanMessages = messages.filter((m) => m.party == "human");
