@@ -23,6 +23,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: origins,
+    credentials: true,
   })
 );
 app.use(express.text());
