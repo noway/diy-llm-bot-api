@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import fs from "fs";
 import https from "https";
 import GPT3Tokenizer from "gpt3-tokenizer";
@@ -27,6 +28,7 @@ app.use(
   })
 );
 app.use(express.text());
+app.use(cookieParser());
 
 const port = process.env.PORT ?? 3000;
 
@@ -46,6 +48,10 @@ const MessageSchema = z.object({
 type Message = z.infer<typeof MessageSchema>;
 
 const MessagesSchema = z.array(MessageSchema);
+
+const CookiesSchema = z.object({
+  authKey: z.string().optional(),
+});
 
 interface Data {
   id: string;
@@ -167,8 +173,9 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     if (typeof req.body !== "string") {
       throw new Error("body is not a string");
     }
+    const cookies = CookiesSchema.parse(req.cookies);
     const body = JSON.parse(req.body);
-    const authKey = z.string().optional().parse(body.authKey);
+    const authKey = cookies.authKey;
     const messages = MessagesSchema.parse(body.messages);
     const model = z.string().parse(body.model);
     const humanMessages = messages.filter((m) => m.party == "human");
