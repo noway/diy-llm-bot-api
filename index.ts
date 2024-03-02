@@ -332,7 +332,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
 app.post("/is-authed", async (req, res) => {
   try {
     const cookies = CookiesSchema.parse(req.cookies);
-    const authKey = cookies.authKey;
+    const authKey = cookies["__Secure-authKey"];
     res.json({
       success: true,
       isAuthed: authKey === process.env.AUTH_KEY,
