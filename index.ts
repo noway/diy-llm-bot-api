@@ -329,6 +329,28 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
   }
 });
 
+app.post("/is-authed", async (req, res) => {
+  try {
+    const cookies = CookiesSchema.parse(req.cookies);
+    const authKey = cookies.authKey;
+    res.json({
+      success: true,
+      isAuthed: authKey === process.env.AUTH_KEY,
+    });
+  } catch (error) {
+    console.error("error", error);
+    try {
+      res.json({
+        success: false,
+        error: { message: (error as Error).message },
+      });
+    } catch (e) {
+      console.error("e", e);
+      // do nothing
+    }
+  }
+})
+
 app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
   res.status(500).contentType("text").send("Internal server error");
 });
