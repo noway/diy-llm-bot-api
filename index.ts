@@ -192,7 +192,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
-        ...(!(isMixtral && isOpus) ? [{
+        ...(!(isMixtral || isOpus) ? [{
           role: "system",
           content: "You are a helpful AI language model assistant.",
         }] : []),
