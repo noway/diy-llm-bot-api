@@ -186,8 +186,9 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
 
     const isMixtral = model === "mistralai/Mixtral-8x7B-Instruct-v0.1";
     const isOpus = model === "anthropic/claude-3-opus:beta";
+    const isMistralLarge = model === "mistralai/mistral-large";
 
-    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || isMixtral || isOpus) {
+    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || isMixtral || isOpus || isMistralLarge) {
       if (model === "gpt-4" && authKey !== process.env.AUTH_KEY) {
         throw new Error("Invalid auth key");
       }
@@ -205,7 +206,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${isMixtral ? process.env.DEEPINFRA_BEARER_TOKEN : (isOpus ? process.env.OPENROUTER_BEARER_TOKEN : BEARER_TOKEN)}`,
+          Authorization: `Bearer ${isMixtral ? process.env.DEEPINFRA_BEARER_TOKEN : ((isOpus || isMistralLarge) ? process.env.OPENROUTER_BEARER_TOKEN : BEARER_TOKEN)}`,
         },
         body: JSON.stringify({
           model,
@@ -215,7 +216,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
         }),
       };
       const response = await fetch(
-        isMixtral ? "https://api.deepinfra.com/v1/openai/chat/completions" : (isOpus ? "https://openrouter.ai/api/v1/chat/completions" : "https://api.openai.com/v1/chat/completions"),
+        isMixtral ? "https://api.deepinfra.com/v1/openai/chat/completions" : ((isOpus || isMistralLarge) ? "https://openrouter.ai/api/v1/chat/completions" : "https://api.openai.com/v1/chat/completions"),
         options
       );
       if (!response.ok) {
