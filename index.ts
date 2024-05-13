@@ -195,7 +195,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     const isOpus = model === "anthropic/claude-3-opus:beta";
     const isMistralLarge = model === "mistralai/mistral-large";
 
-    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || isMixtral || isLlama3_70b || isOpus || isMistralLarge) {
+    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || model === "gpt-4o" || isMixtral || isLlama3_70b || isOpus || isMistralLarge) {
       if (model === "gpt-4" && authKey !== process.env.AUTH_KEY) {
         throw new Error("Invalid auth key");
       }
