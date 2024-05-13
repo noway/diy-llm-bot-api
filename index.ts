@@ -180,6 +180,12 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
     const model = z.string().parse(body.model);
     const humanMessages = messages.filter((m) => m.party == "human");
     const lastHumanMessage = humanMessages[humanMessages.length - 1];
+    if (messages[0]) {
+      if (messages[0].party !== "human") {
+        throw new Error("Validation error");
+      }
+    }
+
     console.log("model", model);
     console.log("human-prompt", lastHumanMessage.text);
     const BEARER_TOKEN = process.env.BEARER_TOKEN;
