@@ -31,6 +31,7 @@ app.use(express.text());
 app.use(cookieParser());
 
 const port = process.env.PORT ?? 3000;
+const httpPort = process.env.HTTP_PORT ?? 8080;
 
 interface Choice {
   text: string;
@@ -377,3 +378,9 @@ https
     app
   )
   .listen(port);
+
+const httpApp = express();
+httpApp.use(function (req, res) {
+  res.status(403).contentType("text").send("Forbidden")
+});
+httpApp.listen(httpPort);
