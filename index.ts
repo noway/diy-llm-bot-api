@@ -50,6 +50,11 @@ type Message = z.infer<typeof MessageSchema>;
 
 const MessagesSchema = z.array(MessageSchema);
 
+const BodySchema = z.object({
+  messages: MessagesSchema,
+  model: z.string(),
+});
+
 const CookiesSchema = z.object({
   "__Secure-authKey": z.string().optional(),
 });
@@ -175,10 +180,11 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       throw new Error("body is not a string");
     }
     const cookies = CookiesSchema.parse(req.cookies);
-    const body = JSON.parse(req.body);
+    const parsed = JSON.parse(req.body);
+    const body = BodySchema.parse(parsed);
     const authKey = cookies["__Secure-authKey"];
-    const messages = MessagesSchema.parse(body.messages);
-    const model = z.string().parse(body.model);
+    const messages = body.messages;
+    const model = body.model;
     const humanMessages = messages.filter((m) => m.party == "human");
     const lastHumanMessage = humanMessages[humanMessages.length - 1];
     if (messages[0]) {
