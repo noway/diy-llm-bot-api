@@ -12,6 +12,7 @@ const TOKENS_SAFETY_MARGIN = 25;
 const tokenizer = new GPT3Tokenizer({ type: "codex" });
 
 const origins = [
+  process.env.FRONTEND_URL_1,
   process.env.FRONTEND_URL_2,
 ].flatMap((f) => (f ? [f] : []));
 
@@ -355,9 +356,14 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBo
 }
 
 const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
+  if (!origins.includes(req.headers.origin ?? "")) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
   res.setHeader("Access-Control-Allow-Methods", "POST");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Origin", origins.join(","));
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin ?? "");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   if (req.url === "/") {
     res.writeHead(200, { "Content-Type": "text" });
