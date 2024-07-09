@@ -12,7 +12,6 @@ const TOKENS_SAFETY_MARGIN = 25;
 const tokenizer = new GPT3Tokenizer({ type: "codex" });
 
 const origins = [
-  process.env.FRONTEND_URL_1,
   process.env.FRONTEND_URL_2,
 ].flatMap((f) => (f ? [f] : []));
 
