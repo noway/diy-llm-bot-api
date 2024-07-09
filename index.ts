@@ -1,6 +1,5 @@
-import express, { NextFunction, Request, Response } from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
+import http from "http";
+import { parse } from "cookie";
 import fs from "fs";
 import https from "https";
 import GPT3Tokenizer from "gpt3-tokenizer";
@@ -18,17 +17,6 @@ const origins = [
 ].flatMap((f) => (f ? [f] : []));
 
 console.log("origins", origins);
-
-const app = express();
-app.use(express.json());
-app.use(
-  cors({
-    origin: origins,
-    credentials: true,
-  })
-);
-app.use(express.text());
-app.use(cookieParser());
 
 const port = process.env.PORT ?? 3000;
 const httpPort = process.env.HTTP_PORT ?? 8080;
@@ -170,17 +158,14 @@ class DoubleNewlineReader {
   }
 }
 
-app.get("/", async (req, res) => {
-  res.contentType("text").send("OK");
-});
-
-app.post("/generate-chat-completion-streaming", async (req, res) => {
+async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
   try {
-    if (typeof req.body !== "string") {
-      throw new Error("body is not a string");
+    if (typeof reqBody !== "string") {
+      throw new Error("reqBody is not a string");
     }
-    const cookies = CookiesSchema.parse(req.cookies);
-    const parsed = JSON.parse(req.body);
+    let reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const cookies = CookiesSchema.parse(reqCookies);
+    const parsed = JSON.parse(reqBody);
     const body = BodySchema.parse(parsed);
     const authKey = cookies["__Secure-authKey"];
     const messages = body.messages;
@@ -243,7 +228,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       }
 
       // send json
-      res.set({ "transfer-encoding": "chunked" });
+      res.setHeader("Transfer-Encoding", "chunked");
 
       const reader = response.body.getReader();
       const doubleNewlineReader = new DoubleNewlineReader(reader);
@@ -307,7 +292,7 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
       }
 
       // send json
-      res.set({ "transfer-encoding": "chunked" });
+      res.setHeader("Transfer-Encoding", "chunked");
 
       const reader = response.body.getReader();
       const doubleNewlineReader = new DoubleNewlineReader(reader);
@@ -334,46 +319,87 @@ app.post("/generate-chat-completion-streaming", async (req, res) => {
   } catch (error) {
     console.error("error", error);
     try {
-      res.json({
+      res.write(JSON.stringify({
         success: false,
         error: { message: (error as Error).message },
-      });
+      }));
     } catch (e) {
       console.error("e", e);
       // do nothing
     }
   }
-});
+};
 
-app.post("/is-authed", async (req, res) => {
+function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
   try {
-    const cookies = CookiesSchema.parse(req.cookies);
+    let reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const cookies = CookiesSchema.parse(reqCookies);
     const authKey = cookies["__Secure-authKey"];
-    res.json({
+    res.write(JSON.stringify({
       success: true,
       isAuthed: authKey === process.env.AUTH_KEY,
-    });
+    }));
   } catch (error) {
     console.error("error", error);
     try {
-      res.json({
+      res.write(JSON.stringify({
         success: false,
         error: { message: (error as Error).message },
-      });
+      }));
     } catch (e) {
       console.error("e", e);
       // do nothing
     }
+  } finally {
+    res.end();
   }
-})
+}
 
-app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
-  res.status(500).contentType("text").send("Internal server error");
-});
-
-app.use(function (req, res, next) {
-  res.status(404).contentType("text").send("Not found");
-})
+const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
+  res.setHeader("Access-Control-Allow-Methods", "POST");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Origin", origins.join(","));
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.url === "/") {
+    res.writeHead(200, { "Content-Type": "text" });
+    res.write("OK");
+    res.end();
+  }
+  else if (req.method === "OPTIONS" && req.url === "/is-authed") {
+    res.writeHead(200);
+    res.end();
+  }
+  else if (req.method === "OPTIONS" && req.url === "/generate-chat-completion-streaming") {
+    res.writeHead(200);
+    res.end();
+  }
+  else if (req.method === "POST" && req.url === "/is-authed") {
+    res.writeHead(200);
+    let reqBody: Buffer[] = [];
+    res.setHeader("Content-Type", "application/json");
+    req.on("data", (chunk) => {
+      reqBody.push(chunk);
+    });
+    req.on("end", () => {
+      postIsAuthed(req, res, Buffer.concat(reqBody).toString());
+    });
+  }
+  else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
+    res.writeHead(200);
+    let reqBody: Buffer[] = [];
+    res.setHeader("Content-Type", "application/json");
+    req.on("data", (chunk) => {
+      reqBody.push(chunk);
+    });
+    req.on("end", async () => {
+      postGenerateChatCompletionStreaming(req, res, Buffer.concat(reqBody).toString());
+    });
+  }
+  else {
+    res.writeHead(404);
+    res.end("Not found");
+  }
+}
 
 https
   .createServer(
@@ -381,12 +407,16 @@ https
       key: fs.readFileSync("./key.pem"),
       cert: fs.readFileSync("./cert.pem"),
     },
-    app
+    requestListener
   )
+  .on('error', (err: Error, req: http.IncomingMessage, res: http.ServerResponse) => {
+    res.writeHead(500);
+    res.end("Internal server error");
+  })
   .listen(port);
+console.log(`Server running on port ${port}`);
 
-const httpApp = express();
-httpApp.use(function (req, res) {
-  res.status(403).contentType("text").send("Forbidden")
-});
-httpApp.listen(httpPort);
+http.createServer((req, res) => {
+  res.writeHead(403);
+  res.end("Forbidden");
+}).listen(httpPort);
