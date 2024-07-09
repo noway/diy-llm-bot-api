@@ -356,15 +356,12 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBo
 }
 
 const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
-  if (!origins.includes(req.headers.origin ?? "")) {
-    res.writeHead(403);
-    res.end("Forbidden");
-    return;
+  if (origins.includes(req.headers.origin ?? "")) {
+    res.setHeader("Access-Control-Allow-Methods", "POST");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin ?? "");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
   }
-  res.setHeader("Access-Control-Allow-Methods", "POST");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin ?? "");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
   if (req.url === "/") {
     res.writeHead(200, { "Content-Type": "text" });
     res.write("OK");
