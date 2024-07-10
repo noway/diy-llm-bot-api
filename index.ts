@@ -5,8 +5,6 @@ import https from "https";
 import GPT3Tokenizer from "gpt3-tokenizer";
 import { z } from "zod";
 
-require("dotenv").config();
-
 const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
 const tokenizer = new GPT3Tokenizer({ type: "codex" });
