@@ -148,8 +148,7 @@ class DoubleNewlineReader {
         }
         break;
       }
-      let dataString = new TextDecoder().decode(value);
-      dataString = dataString.replace(/\r\n/g, "\n");
+      const dataString = new TextDecoder().decode(value).replace(/\r\n/g, "\n");
       this.buffer += dataString;  // Assuming value is a string; adjust if not
     }
     return { done: true, value: this.buffer };
@@ -161,7 +160,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     if (typeof reqBody !== "string") {
       throw new Error("reqBody is not a string");
     }
-    let reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const cookies = CookiesSchema.parse(reqCookies);
     const parsed = JSON.parse(reqBody);
     const body = BodySchema.parse(parsed);
@@ -330,7 +329,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
 
 function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
   try {
-    let reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const cookies = CookiesSchema.parse(reqCookies);
     const authKey = cookies["__Secure-authKey"];
     res.write(JSON.stringify({
@@ -375,7 +374,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   }
   else if (req.method === "POST" && req.url === "/is-authed") {
     res.writeHead(200);
-    let reqBody: Buffer[] = [];
+    const reqBody: Buffer[] = [];
     res.setHeader("Content-Type", "application/json");
     req.on("data", (chunk) => {
       reqBody.push(chunk);
@@ -386,7 +385,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
     res.writeHead(200);
-    let reqBody: Buffer[] = [];
+    const reqBody: Buffer[] = [];
     res.setHeader("Content-Type", "application/json");
     req.on("data", (chunk) => {
       reqBody.push(chunk);
