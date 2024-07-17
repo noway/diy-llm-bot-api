@@ -77,7 +77,7 @@ function chunkToDataArray<T = Data>(chunkString: string): T[] {
   for (let i = 0; i < dataLines.length; i++) {
     const dataLine = dataLines[i].trim();
     if (dataLine.startsWith("data: ")) {
-      if (dataLine == "data: [DONE]") {
+      if (dataLine === "data: [DONE]") {
         return dataArray;
       }
       const dataString = dataLine.slice("data: ".length);
@@ -110,9 +110,9 @@ Feel free to ask me anything and I will do my best to help.
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
     const { party, text } = message;
-    if (party == "human") {
+    if (party === "human") {
       prompt += `Human: ${text.trim()}\n\n`;
-    } else if (party == "bot") {
+    } else if (party === "bot") {
       prompt += `Bot: ${text.trim()}\n\n`;
     }
   }
@@ -167,7 +167,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     const authKey = cookies["__Secure-authKey"];
     const messages = body.messages;
     const model = body.model;
-    const humanMessages = messages.filter((m) => m.party == "human");
+    const humanMessages = messages.filter((m) => m.party === "human");
     const lastHumanMessage = humanMessages[humanMessages.length - 1];
     if (messages[0]) {
       if (messages[0].party !== "human") {
@@ -194,7 +194,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
           content: "You are a helpful AI language model assistant.",
         }] : []),
         ...messages.map((m) => ({
-          role: m.party == "human" ? "user" : "assistant",
+          role: m.party === "human" ? "user" : "assistant",
           content: m.text,
         })),
       ];
