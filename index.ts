@@ -252,7 +252,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       }
       res.end();
       console.log("completion", completion);
-    } else {
+    } else if (model === "gpt-3.5-turbo-instruct") {
       const prompt = generatePrompt(messages);
       const encoded: { bpe: number[]; text: string[] } =
         tokenizer.encode(prompt);
@@ -312,6 +312,8 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       }
       res.end();
       console.log("completion", completion.trim());
+    } else {
+      throw new Error("Invalid model");
     }
   } catch (error) {
     console.error("error", error);
