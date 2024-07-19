@@ -323,6 +323,8 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     } catch (e) {
       console.error("e", e);
       // do nothing
+    } finally {
+      res.end();
     }
   }
 };
