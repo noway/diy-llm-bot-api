@@ -185,13 +185,14 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     const isOpus = model === "anthropic/claude-3-opus:beta";
     const isSonnet = model === "anthropic/claude-3.5-sonnet";
     const isMistralLarge = model === "mistralai/mistral-large";
+    const isDeepSeekCoder = model === "deepseek/deepseek-coder";
 
-    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || model === "gpt-4o-mini" || model === "gpt-4o" || isMixtral || isLlama3_405b || isLlama3_70b || isOpus || isSonnet || isMistralLarge) {
+    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || model === "gpt-4o-mini" || model === "gpt-4o" || isMixtral || isLlama3_405b || isLlama3_70b || isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) {
       if (model === "gpt-4" && authKey !== process.env.AUTH_KEY) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
-        ...(!(isMixtral || isLlama3_405b || isLlama3_70b || isOpus || isSonnet || isMistralLarge) ? [{
+        ...(!(isMixtral || isLlama3_405b || isLlama3_70b || isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) ? [{
           role: "system",
           content: "You are a helpful AI language model assistant.",
         }] : []),
@@ -204,7 +205,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${isMixtral || isLlama3_405b ? process.env.DEEPINFRA_BEARER_TOKEN : ((isOpus || isSonnet || isMistralLarge) ? process.env.OPENROUTER_BEARER_TOKEN : (isLlama3_70b ? process.env.TOGETHER_BEARER_TOKEN : BEARER_TOKEN))}`,
+          Authorization: `Bearer ${isMixtral || isLlama3_405b ? process.env.DEEPINFRA_BEARER_TOKEN : ((isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) ? process.env.OPENROUTER_BEARER_TOKEN : (isLlama3_70b ? process.env.TOGETHER_BEARER_TOKEN : BEARER_TOKEN))}`,
         },
         body: JSON.stringify({
           model,
@@ -214,7 +215,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         }),
       };
       const response = await fetch(
-        isMixtral || isLlama3_405b ? "https://api.deepinfra.com/v1/openai/chat/completions" : ((isOpus || isSonnet || isMistralLarge) ? "https://openrouter.ai/api/v1/chat/completions" : (isLlama3_70b ? "https://api.together.xyz/v1/chat/completions" : "https://api.openai.com/v1/chat/completions")),
+        isMixtral || isLlama3_405b ? "https://api.deepinfra.com/v1/openai/chat/completions" : ((isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) ? "https://openrouter.ai/api/v1/chat/completions" : (isLlama3_70b ? "https://api.together.xyz/v1/chat/completions" : "https://api.openai.com/v1/chat/completions")),
         options
       );
       if (!response.ok) {
