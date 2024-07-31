@@ -155,6 +155,76 @@ class DoubleNewlineReader {
   }
 }
 
+function getProvider(model: string) {
+  switch (model) {
+    case "mistralai/Mixtral-8x7B-Instruct-v0.1":
+    case "meta-llama/Meta-Llama-3.1-405B-Instruct":
+      return "deepinfra"
+    case "meta-llama/Llama-3-70b-chat-hf":
+      return "together"
+    case "anthropic/claude-3-opus:beta":
+    case "anthropic/claude-3.5-sonnet":
+    case "mistralai/mistral-large":
+    case "deepseek/deepseek-coder":
+      return "openrouter"
+    case "gpt-3.5-turbo-instruct":
+    case "gpt-3.5-turbo":
+    case "gpt-4":
+    case "gpt-4-1106-preview":
+    case "gpt-4o-mini":
+    case "gpt-4o":
+      return "openai"
+  }
+}
+
+interface ModelConfig {
+  apiType: 'chat' | 'instruct'
+  systemMessage: 'default' | 'custom'
+  bearerToken: string | undefined
+  apiUrl: string
+  provider: Exclude<ReturnType<typeof getProvider>, undefined>
+}
+
+function getModelConfig(model: string): ModelConfig | undefined {
+  const provider = getProvider(model)
+  switch (provider) {
+    case undefined:
+      return undefined
+    case "deepinfra":
+      return {
+        provider,
+        apiType: 'chat',
+        systemMessage: 'default',
+        bearerToken: process.env.DEEPINFRA_BEARER_TOKEN,
+        apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions"
+      }
+    case "together":
+      return {
+        provider,
+        apiType: 'chat',
+        systemMessage: 'default',
+        bearerToken: process.env.TOGETHER_BEARER_TOKEN,
+        apiUrl: "https://api.together.xyz/v1/chat/completions"
+      }
+    case "openrouter":
+      return {
+        provider,
+        apiType: 'chat',
+        systemMessage: 'default',
+        bearerToken: process.env.OPENROUTER_BEARER_TOKEN,
+        apiUrl: "https://openrouter.ai/api/v1/chat/completions"
+      }
+    case "openai":
+      return {
+        provider,
+        apiType: model === "gpt-3.5-turbo-instruct" ? 'instruct' : 'chat',
+        systemMessage: 'custom',
+        bearerToken: process.env.BEARER_TOKEN,
+        apiUrl: "https://api.openai.com/v1/chat/completions"
+      }
+  }
+}
+
 async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
   try {
     if (typeof reqBody !== "string") {
