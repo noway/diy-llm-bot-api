@@ -247,22 +247,18 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
 
     console.log("model", model);
     console.log("human-prompt", lastHumanMessage.text);
-    const BEARER_TOKEN = process.env.BEARER_TOKEN;
 
-    const isMixtral = model === "mistralai/Mixtral-8x7B-Instruct-v0.1";
-    const isLlama3_405b = model === "meta-llama/Meta-Llama-3.1-405B-Instruct";
-    const isLlama3_70b = model === "meta-llama/Llama-3-70b-chat-hf";
-    const isOpus = model === "anthropic/claude-3-opus:beta";
-    const isSonnet = model === "anthropic/claude-3.5-sonnet";
-    const isMistralLarge = model === "mistralai/mistral-large";
-    const isDeepSeekCoder = model === "deepseek/deepseek-coder";
-
-    if (model === "gpt-3.5-turbo" || model === "gpt-4" || model === "gpt-4-1106-preview" || model === "gpt-4o-mini" || model === "gpt-4o" || isMixtral || isLlama3_405b || isLlama3_70b || isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) {
+    const modelConfig = getModelConfig(model);
+    if (!modelConfig) {
+      throw new Error("Invalid model");
+    }
+    const { apiType, systemMessage, bearerToken, provider, apiUrl } = modelConfig;
+    if (apiType === 'chat') {
       if (model === "gpt-4" && authKey !== process.env.AUTH_KEY) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
-        ...(!(isMixtral || isLlama3_405b || isLlama3_70b || isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) ? [{
+        ...(systemMessage === 'custom' ? [{
           role: "system",
           content: "You are a helpful AI language model assistant.",
         }] : []),
@@ -275,17 +271,17 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${isMixtral || isLlama3_405b ? process.env.DEEPINFRA_BEARER_TOKEN : ((isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) ? process.env.OPENROUTER_BEARER_TOKEN : (isLlama3_70b ? process.env.TOGETHER_BEARER_TOKEN : BEARER_TOKEN))}`,
+          Authorization: `Bearer ${bearerToken}`,
         },
         body: JSON.stringify({
           model,
           messages: chatMessages,
           stream: true,
-          stop: isLlama3_70b ? "<|eot_id|>" : "END_OF_STREAM",
+          stop: provider === "together" ? "<|eot_id|>" : "END_OF_STREAM",
         }),
       };
       const response = await fetch(
-        isMixtral || isLlama3_405b ? "https://api.deepinfra.com/v1/openai/chat/completions" : ((isOpus || isSonnet || isMistralLarge || isDeepSeekCoder) ? "https://openrouter.ai/api/v1/chat/completions" : (isLlama3_70b ? "https://api.together.xyz/v1/chat/completions" : "https://api.openai.com/v1/chat/completions")),
+        apiUrl,
         options
       );
       if (!response.ok) {
@@ -325,7 +321,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       }
       res.end();
       console.log("completion", completion);
-    } else if (model === "gpt-3.5-turbo-instruct") {
+    } else if (apiType === 'instruct') {
       const prompt = generatePrompt(messages);
       const encoded: { bpe: number[]; text: string[] } =
         tokenizer.encode(prompt);
@@ -336,7 +332,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BEARER_TOKEN}`,
+          Authorization: `Bearer ${bearerToken}`,
         },
         body: JSON.stringify({
           model,
@@ -385,8 +381,6 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       }
       res.end();
       console.log("completion", completion.trim());
-    } else {
-      throw new Error("Invalid model");
     }
   } catch (error) {
     console.error("error", error);
