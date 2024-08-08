@@ -3,7 +3,8 @@ import http from "http";
 import https from "https";
 import { z } from "zod";
 import { parse } from "cookie";
-import GPT3Tokenizer from "gpt3-tokenizer";
+import GPT3TokenizerESM from "gpt3-tokenizer";
+const GPT3Tokenizer: typeof GPT3TokenizerESM = require("gpt3-tokenizer").default;
 
 const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
