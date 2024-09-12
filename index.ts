@@ -436,15 +436,12 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     res.end();
   }
   else if (req.method === "OPTIONS" && req.url === "/is-authed") {
-    res.writeHead(200);
     res.end();
   }
   else if (req.method === "OPTIONS" && req.url === "/generate-chat-completion-streaming") {
-    res.writeHead(200);
     res.end();
   }
   else if (req.method === "POST" && req.url === "/is-authed") {
-    res.writeHead(200);
     const reqBody: Buffer[] = [];
     res.setHeader("Content-Type", "application/json");
     req.on("data", (chunk) => {
@@ -455,7 +452,6 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     });
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
-    res.writeHead(200);
     const reqBody: Buffer[] = [];
     res.setHeader("Content-Type", "application/json");
     req.on("data", (chunk) => {
