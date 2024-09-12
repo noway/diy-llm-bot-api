@@ -11,6 +11,7 @@
     "@types/cookie": "^0.6.0",
     "@types/node": "^22.5.4"
   },
+  "type": "module",
   "scripts": {
     "dev": "bun --hot index.ts",
     "start": "bun index.ts"
