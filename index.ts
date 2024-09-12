@@ -3,12 +3,11 @@ import http from "http";
 import https from "https";
 import { z } from "zod";
 import { parse } from "cookie";
-import GPT3TokenizerESM from "gpt3-tokenizer";
-const GPT3Tokenizer: typeof GPT3TokenizerESM = require("gpt3-tokenizer").default;
+import GPT3Tokenizer from "gpt3-tokenizer";
 
 const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
-const tokenizer = new GPT3Tokenizer({ type: "codex" });
+const tokenizer = new ((GPT3Tokenizer as unknown as { default: typeof GPT3Tokenizer }).default)({ type: "codex" });
 
 const origins = [
   process.env.FRONTEND_URL_1,
