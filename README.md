@@ -9,13 +9,13 @@ You can try it out on [diy-llm-bot.com](https://diy-llm-bot.com/).
 In development:
 
 ```bash
-bun dev
+node --run dev
 ```
 
 In production:
 
 ```bash
-pm2 start bun --name diy-llm-bot-api -- start
+pm2 start node --name diy-llm-bot-api -- --run start
 ```
 
 ## Links

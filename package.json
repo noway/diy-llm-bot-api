@@ -13,7 +13,7 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "bun --hot index.ts",
-    "start": "bun index.ts"
+    "dev": "node --env-file .env --experimental-strip-types --watch index.ts",
+    "start": "node --env-file .env --experimental-strip-types index.ts"
   }
 }
