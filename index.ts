@@ -182,6 +182,7 @@ interface ModelConfig {
   systemMessage: 'default' | 'custom'
   bearerToken: string | undefined
   apiUrl: string
+  // TODO: don't expose provider directly
   provider: Exclude<ReturnType<typeof getProvider>, undefined>
 }
 
