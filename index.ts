@@ -173,6 +173,8 @@ function getProvider(model: string) {
     case "gpt-4-1106-preview":
     case "gpt-4o-mini":
     case "gpt-4o":
+    case "o1-preview":
+    case "o1-mini":
       return "openai"
   }
 }
@@ -219,7 +221,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
       return {
         provider,
         apiType: model === "gpt-3.5-turbo-instruct" ? 'instruct' : 'chat',
-        systemMessage: 'custom',
+        systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
         bearerToken: process.env.BEARER_TOKEN,
         apiUrl: "https://api.openai.com/v1/chat/completions"
       }
@@ -277,8 +279,8 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         body: JSON.stringify({
           model,
           messages: chatMessages,
-          stream: true,
-          stop: provider === "together" ? "<|eot_id|>" : "END_OF_STREAM",
+          stream: model !== "o1-preview" && model !== "o1-mini",
+          stop: model !== "o1-preview" && model !== "o1-mini" ? (provider === "together" ? "<|eot_id|>" : "END_OF_STREAM") : undefined,
         }),
       };
       const response = await fetch(
@@ -296,6 +298,16 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
 
       // send json
       res.setHeader("Transfer-Encoding", "chunked");
+
+      if (model === "o1-preview" || model === "o1-mini") {
+        const result = await response.text()
+        const data = JSON.parse(result)
+        const completion = data.choices[0].message.content
+        res.write(completion)
+        res.end()
+        console.log("completion", completion);
+        return
+      }
 
       const reader = response.body.getReader();
       const doubleNewlineReader = new DoubleNewlineReader(reader);
