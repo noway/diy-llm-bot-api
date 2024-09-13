@@ -30,7 +30,7 @@ const MessageSchema = z.object({
   text: z.string(),
   name: z.enum(["You", "Bot"]),
   party: z.enum(["bot", "human"]),
-  id: z.number(),
+  id: z.union([z.string(), z.number()]), // TODO: number is deprecated, remove
 });
 type Message = z.infer<typeof MessageSchema>;
 
