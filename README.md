@@ -9,13 +9,13 @@ You can try it out on [diy-llm-bot.com](https://diy-llm-bot.com/).
 In development:
 
 ```bash
-node --run dev
+node --disable-warning=ExperimentalWarning --run dev
 ```
 
 In production:
 
 ```bash
-pm2 start node --name diy-llm-bot-api -- --run start
+pm2 start node --name diy-llm-bot-api -- --disable-warning=ExperimentalWarning --run start
 ```
 
 ## Links
