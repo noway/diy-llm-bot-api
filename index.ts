@@ -184,8 +184,7 @@ interface ModelConfig {
   systemMessage: 'default' | 'custom'
   bearerToken: string | undefined
   apiUrl: string
-  // TODO: don't expose provider directly
-  provider: Exclude<ReturnType<typeof getProvider>, undefined>
+  stop: string | undefined
 }
 
 function getModelConfig(model: string): ModelConfig | undefined {
@@ -195,35 +194,35 @@ function getModelConfig(model: string): ModelConfig | undefined {
       return undefined
     case "deepinfra":
       return {
-        provider,
         apiType: 'chat',
         systemMessage: 'default',
         bearerToken: process.env.DEEPINFRA_BEARER_TOKEN,
-        apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions"
+        apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
+        stop: "END_OF_STREAM",
       }
     case "together":
       return {
-        provider,
         apiType: 'chat',
         systemMessage: 'default',
         bearerToken: process.env.TOGETHER_BEARER_TOKEN,
-        apiUrl: "https://api.together.xyz/v1/chat/completions"
+        apiUrl: "https://api.together.xyz/v1/chat/completions",
+        stop: "<|eot_id|>",
       }
     case "openrouter":
       return {
-        provider,
         apiType: 'chat',
         systemMessage: 'default',
         bearerToken: process.env.OPENROUTER_BEARER_TOKEN,
-        apiUrl: "https://openrouter.ai/api/v1/chat/completions"
+        apiUrl: "https://openrouter.ai/api/v1/chat/completions",
+        stop: "END_OF_STREAM",
       }
     case "openai":
       return {
-        provider,
         apiType: model === "gpt-3.5-turbo-instruct" ? 'instruct' : 'chat',
         systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
         bearerToken: process.env.BEARER_TOKEN,
-        apiUrl: "https://api.openai.com/v1/chat/completions"
+        apiUrl: "https://api.openai.com/v1/chat/completions",
+        stop: model === "o1-preview" || model === "o1-mini" ? undefined : "END_OF_STREAM",
       }
   }
 }
@@ -255,7 +254,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     if (!modelConfig) {
       throw new Error("Invalid model");
     }
-    const { apiType, systemMessage, bearerToken, provider, apiUrl } = modelConfig;
+    const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
       if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && authKey !== process.env.AUTH_KEY) {
         throw new Error("Invalid auth key");
@@ -280,7 +279,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
           model,
           messages: chatMessages,
           stream: model !== "o1-preview" && model !== "o1-mini",
-          stop: model !== "o1-preview" && model !== "o1-mini" ? (provider === "together" ? "<|eot_id|>" : "END_OF_STREAM") : undefined,
+          stop,
         }),
       };
       const response = await fetch(
