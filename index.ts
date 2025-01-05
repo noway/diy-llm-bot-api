@@ -21,10 +21,28 @@ console.log("origins", origins);
 const port = process.env.PORT ?? 3000;
 const httpPort = process.env.HTTP_PORT ?? 8080;
 
+interface TopLogProb {
+  token: string;
+  logprob: number;
+  selected?: boolean;
+}
+
+interface LogProbContent {
+  token: string;
+  logprob: number;
+  bytes: number[];
+  top_logprobs: TopLogProb[];
+}
+
+interface Logprobs {
+  content: LogProbContent[];
+  refusal: string | null;
+}
+
 interface Choice {
   text: string;
   index: number;
-  logprobs?: any;
+  logprobs?: Logprobs;
   finish_reason: string;
 }
 
