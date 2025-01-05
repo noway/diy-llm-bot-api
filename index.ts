@@ -4,6 +4,7 @@ import https from "https";
 import { z } from "zod";
 import { parse } from "cookie";
 import GPT3Tokenizer from "gpt3-tokenizer";
+import { timingSafeEqual } from "crypto";
 
 const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
@@ -256,7 +257,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
-      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && authKey !== process.env.AUTH_KEY) {
+      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && !timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(process.env.AUTH_KEY ?? "", "utf8"))) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
