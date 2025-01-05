@@ -5,10 +5,11 @@ import { z } from "zod";
 import { parse } from "cookie";
 import GPT3Tokenizer from "gpt3-tokenizer";
 import { timingSafeEqual } from "crypto";
+import secrets from "./secrets.json" with { type: "json" };
 
 const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
-const tokenizer = new ((GPT3Tokenizer as unknown as { default: typeof GPT3Tokenizer }).default)({ type: "codex" });
+const tokenizer = new GPT3Tokenizer.default({ type: "gpt3" });
 
 const origins = [
   process.env.FRONTEND_URL_1,
@@ -197,7 +198,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
       return {
         apiType: 'chat',
         systemMessage: 'default',
-        bearerToken: process.env.DEEPINFRA_BEARER_TOKEN,
+        bearerToken: secrets.DEEPINFRA_BEARER_TOKEN,
         apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
         stop: "END_OF_STREAM",
       }
@@ -205,7 +206,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
       return {
         apiType: 'chat',
         systemMessage: 'default',
-        bearerToken: process.env.TOGETHER_BEARER_TOKEN,
+        bearerToken: secrets.TOGETHER_BEARER_TOKEN,
         apiUrl: "https://api.together.xyz/v1/chat/completions",
         stop: "<|eot_id|>",
       }
@@ -213,7 +214,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
       return {
         apiType: 'chat',
         systemMessage: 'default',
-        bearerToken: process.env.OPENROUTER_BEARER_TOKEN,
+        bearerToken: secrets.OPENROUTER_BEARER_TOKEN,
         apiUrl: "https://openrouter.ai/api/v1/chat/completions",
         stop: "END_OF_STREAM",
       }
@@ -221,7 +222,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
       return {
         apiType: model === "gpt-3.5-turbo-instruct" ? 'instruct' : 'chat',
         systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
-        bearerToken: process.env.BEARER_TOKEN,
+        bearerToken: secrets.BEARER_TOKEN,
         apiUrl: "https://api.openai.com/v1/chat/completions",
         stop: model === "o1-preview" || model === "o1-mini" ? undefined : "END_OF_STREAM",
       }
@@ -257,7 +258,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
-      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && !timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(process.env.AUTH_KEY ?? "", "utf8"))) {
+      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && !timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(secrets.AUTH_KEY ?? "", "utf8"))) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
@@ -418,7 +419,7 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBo
     const authKey = cookies["__Secure-authKey"];
     res.write(JSON.stringify({
       success: true,
-      isAuthed: timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(process.env.AUTH_KEY ?? "", "utf8")),
+      isAuthed: timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(secrets.AUTH_KEY ?? "", "utf8")),
     }));
   } catch (error) {
     console.error("error", error);
