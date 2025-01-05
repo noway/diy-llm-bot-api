@@ -4,7 +4,7 @@ import https from "https";
 import { z } from "zod";
 import { parse } from "cookie";
 import GPT3Tokenizer from "gpt3-tokenizer";
-import { timingSafeEqual } from "crypto";
+import crypto from "crypto";
 import secrets from "./secrets.json" with { type: "json" };
 
 const MAX_TOKENS = 4097;
@@ -157,6 +157,14 @@ class DoubleNewlineReader {
   }
 }
 
+function timeSafeCompare(a: string, b: string) {
+  // Brad Hill's Double HMAC pattern
+  const key = crypto.randomBytes(32);
+  const ah = crypto.createHmac('sha256', key).update(a).digest();
+  const bh = crypto.createHmac('sha256', key).update(b).digest();
+  return crypto.timingSafeEqual(ah, bh) && a === b;
+}
+
 function getProvider(model: string) {
   switch (model) {
     case "mistralai/Mixtral-8x7B-Instruct-v0.1":
@@ -258,7 +266,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
-      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && !timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(secrets.AUTH_KEY ?? "", "utf8"))) {
+      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
@@ -419,7 +427,7 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBo
     const authKey = cookies["__Secure-authKey"];
     res.write(JSON.stringify({
       success: true,
-      isAuthed: timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(secrets.AUTH_KEY ?? "", "utf8")),
+      isAuthed: timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? ""),
     }));
   } catch (error) {
     console.error("error", error);
