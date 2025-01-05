@@ -418,7 +418,7 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBo
     const authKey = cookies["__Secure-authKey"];
     res.write(JSON.stringify({
       success: true,
-      isAuthed: authKey === process.env.AUTH_KEY,
+      isAuthed: timingSafeEqual(Buffer.from(authKey ?? "", "utf8"), Buffer.from(process.env.AUTH_KEY ?? "", "utf8")),
     }));
   } catch (error) {
     console.error("error", error);
