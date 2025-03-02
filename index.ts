@@ -199,6 +199,7 @@ function getProvider(model: string) {
     case "gpt-3.5-turbo":
     case "gpt-4":
     case "gpt-4-1106-preview":
+    case "gpt-4.5-preview":
     case "gpt-4o-mini":
     case "gpt-4o":
     case "o1-preview":
