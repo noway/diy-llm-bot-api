@@ -285,7 +285,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
-      if ((model === "gpt-4" || model === "o1-preview" || model === "o1-mini") && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
+      if ((model === "gpt-4" || model === "gpt-4.5-preview" || model === "o1-preview" || model === "o1-mini") && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
