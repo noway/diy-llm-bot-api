@@ -5,7 +5,7 @@
   "dependencies": {
     "cookie": "^1.0.2",
     "gpt3-tokenizer": "^1.1.5",
-    "zod": "^3.24.3"
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@types/node": "^22.15.3"
