@@ -145,10 +145,12 @@ Feel free to ask me anything and I will do my best to help.
 class DoubleNewlineReader {
   reader: ReadableStreamDefaultReader<BufferSource>;
   buffer: string;
+  decoder: TextDecoder;
 
   constructor(reader: ReadableStreamDefaultReader<BufferSource>) {
     this.reader = reader;
     this.buffer = '';
+    this.decoder = new TextDecoder();
   }
 
   async readUntilDoubleNewline() {
@@ -168,7 +170,7 @@ class DoubleNewlineReader {
         }
         break;
       }
-      const dataString = new TextDecoder().decode(value).replace(/\r\n/g, "\n");
+      const dataString = this.decoder.decode(value).replace(/\r\n/g, "\n");
       this.buffer += dataString;  // Assuming value is a string; adjust if not
     }
     return { done: true, value: this.buffer };
