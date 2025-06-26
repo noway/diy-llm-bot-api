@@ -8,7 +8,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@types/node": "^22.15.32"
+    "@types/node": "^22.15.33"
   },
   "type": "module",
   "scripts": {
