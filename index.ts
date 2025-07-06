@@ -502,7 +502,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
       reqBody.push(chunk);
     });
     req.on("end", async () => {
-      postGenerateChatCompletionStreaming(req, res, Buffer.concat(reqBody).toString());
+      await postGenerateChatCompletionStreaming(req, res, Buffer.concat(reqBody).toString());
     });
   }
   else {
