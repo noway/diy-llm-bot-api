@@ -475,7 +475,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
   if (req.url === "/") {
-    res.writeHead(200, { "Content-Type": "text" });
+    res.writeHead(200, { "Content-Type": "text/plain" });
     res.write("OK");
     res.end();
   }
