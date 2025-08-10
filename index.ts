@@ -256,7 +256,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
         systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
         bearerToken: secrets.BEARER_TOKEN,
         apiUrl: "https://api.openai.com/v1/chat/completions",
-        stop: model === "o1-preview" || model === "o1-mini" ? undefined : "END_OF_STREAM",
+        stop: model === "o1-preview" || model === "o1-mini" || model === "gpt-5" ? undefined : "END_OF_STREAM",
       }
   }
 }
@@ -312,7 +312,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         body: JSON.stringify({
           model,
           messages: chatMessages,
-          stream: model !== "o1-preview" && model !== "o1-mini",
+          stream: model !== "o1-preview" && model !== "o1-mini" && model !== "gpt-5",
           stop,
         }),
       };
@@ -332,7 +332,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       // send json
       res.setHeader("Transfer-Encoding", "chunked");
 
-      if (model === "o1-preview" || model === "o1-mini") {
+      if (model === "o1-preview" || model === "o1-mini" || model === "gpt-5") {
         const result = await response.text()
         const data = JSON.parse(result)
         const completion = data.choices[0].message.content
