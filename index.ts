@@ -205,6 +205,7 @@ function getProvider(model: string) {
     case "gpt-4.1-mini":
     case "gpt-4.1-nano":
     case "gpt-5":
+    case "gpt-5-chat-latest":
     case "gpt-4o-mini":
     case "gpt-4o":
     case "o1-preview":
@@ -290,7 +291,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
-      if ((model === "gpt-4" || model === "gpt-4.1" || model === "gpt-4.1-mini" || model === "gpt-4.1-nano" || model === "gpt-5" || model === "o1-preview" || model === "o1-mini") && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
+      if ((model === "gpt-4" || model === "gpt-4.1" || model === "gpt-4.1-mini" || model === "gpt-4.1-nano" || model === "gpt-5" || model === "gpt-5-chat-latest" || model === "o1-preview" || model === "o1-mini") && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
