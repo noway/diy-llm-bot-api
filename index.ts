@@ -432,6 +432,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
   } catch (error) {
     console.error("error", error);
     try {
+      res.setHeader("Content-Type", "application/json");
       res.write(JSON.stringify({
         success: false,
         error: { message: (error as Error).message },
@@ -457,6 +458,7 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBo
   } catch (error) {
     console.error("error", error);
     try {
+      res.setHeader("Content-Type", "application/json");
       res.write(JSON.stringify({
         success: false,
         error: { message: (error as Error).message },
