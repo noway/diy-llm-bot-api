@@ -511,7 +511,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     });
   }
   else {
-    res.writeHead(404);
+    res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not found");
   }
 }
@@ -525,13 +525,13 @@ https
     requestListener
   )
   .on('error', (err: Error, req: http.IncomingMessage, res: http.ServerResponse) => {
-    res.writeHead(500);
+    res.writeHead(500, { "Content-Type": "text/plain" });
     res.end("Internal server error");
   })
   .listen(port);
 console.log(`Server running on port ${port}`);
 
 http.createServer((req, res) => {
-  res.writeHead(403);
+  res.writeHead(403, { "Content-Type": "text/plain" });
   res.end("Forbidden");
 }).listen(httpPort);
