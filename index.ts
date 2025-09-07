@@ -516,7 +516,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   }
 }
 
-https
+const httpsServer = https
   .createServer(
     {
       key: fs.readFileSync("./key.pem"),
@@ -531,7 +531,19 @@ https
   .listen(port);
 console.log(`Server running on port ${port}`);
 
-http.createServer((req, res) => {
+const httpServer = http.createServer((req, res) => {
   res.writeHead(403, { "Content-Type": "text/plain" });
   res.end("Forbidden");
 }).listen(httpPort);
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing servers');
+  httpsServer.close();
+  httpServer.close();
+});
+
+process.on('SIGINT', () => {
+  console.log('\nSIGINT received, closing servers');
+  httpsServer.close();
+  httpServer.close();
+});
