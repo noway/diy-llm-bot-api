@@ -432,16 +432,22 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
   } catch (error) {
     console.error("error", error);
     try {
-      res.setHeader("Content-Type", "application/json");
-      res.write(JSON.stringify({
-        success: false,
-        error: { message: (error as Error).message },
-      }));
+      if (!res.headersSent) {
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify({
+          success: false,
+          error: { message: (error as Error).message },
+        }));
+      } else if (!res.writableEnded) {
+        res.end();
+      }
     } catch (e) {
       console.error("e", e);
       // do nothing
     } finally {
-      res.end();
+      if (!res.writableEnded) {
+        res.end();
+      }
     }
   }
 };
