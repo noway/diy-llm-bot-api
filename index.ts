@@ -282,6 +282,10 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       }
     }
 
+    if (!lastHumanMessage) {
+      throw new Error("Validation error: no human message found");
+    }
+
     console.log("model", model);
     console.log("human-prompt", lastHumanMessage.text);
 
