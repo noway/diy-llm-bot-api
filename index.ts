@@ -334,8 +334,11 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         throw new Error("No response body");
       }
 
-      // send json
+      // send server events
       res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
 
       if (model === "o1-preview" || model === "o1-mini" || model === "gpt-5") {
         const result = await response.text()
@@ -408,8 +411,11 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         throw new Error("No response body");
       }
 
-      // send json
+      // send server events
       res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
 
       const reader = response.body.getReader();
       const doubleNewlineReader = new DoubleNewlineReader(reader);
@@ -512,7 +518,6 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
     const reqBody: Buffer[] = [];
-    res.setHeader("Content-Type", "application/json");
     req.on("data", (chunk) => {
       reqBody.push(chunk);
     });
