@@ -462,7 +462,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
   }
 };
 
-function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
+function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
     const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const cookies = CookiesSchema.parse(reqCookies);
