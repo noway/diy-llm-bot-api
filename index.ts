@@ -513,7 +513,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
       reqBody.push(chunk);
     });
     req.on("end", () => {
-      postIsAuthed(req, res, Buffer.concat(reqBody).toString());
+      postIsAuthed(req, res);
     });
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
