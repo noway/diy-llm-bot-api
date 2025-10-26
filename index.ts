@@ -539,7 +539,7 @@ const httpsServer = https
     },
     requestListener
   )
-  .on('error', (err: Error, req: http.IncomingMessage, res: http.ServerResponse) => {
+  .on('error', (_err: Error, _req: http.IncomingMessage, res: http.ServerResponse) => {
     res.writeHead(500, { "Content-Type": "text/plain" });
     res.end("Internal server error");
   })
