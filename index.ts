@@ -381,6 +381,10 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         tokenizer.encode(prompt);
       const promptTokens = encoded.bpe.length;
 
+      if (promptTokens >= MAX_TOKENS - TOKENS_SAFETY_MARGIN) {
+        throw new Error("Too many tokens.");
+      }
+
       const temperature = 0.5;
       const options = {
         method: "POST",
