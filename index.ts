@@ -11,6 +11,17 @@ const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
 const tokenizer = new GPT3Tokenizer.default({ type: "gpt3" });
 
+const AUTHED_MODELS = new Set([
+  "gpt-4",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-5",
+  "gpt-5-chat-latest",
+  "o1-preview",
+  "o1-mini",
+]);
+
 const origins = [
   process.env.FRONTEND_URL_1,
   process.env.FRONTEND_URL_2,
@@ -295,7 +306,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
     if (apiType === 'chat') {
-      if ((model === "gpt-4" || model === "gpt-4.1" || model === "gpt-4.1-mini" || model === "gpt-4.1-nano" || model === "gpt-5" || model === "gpt-5-chat-latest" || model === "o1-preview" || model === "o1-mini") && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
+      if (AUTHED_MODELS.has(model) && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
