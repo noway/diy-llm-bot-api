@@ -11,17 +11,6 @@ const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
 const tokenizer = new GPT3Tokenizer.default({ type: "gpt3" });
 
-const AUTHED_MODELS = new Set([
-  "gpt-4",
-  "gpt-4.1",
-  "gpt-4.1-mini",
-  "gpt-4.1-nano",
-  "gpt-5",
-  "gpt-5-chat-latest",
-  "o1-preview",
-  "o1-mini",
-]);
-
 const origins = [
   process.env.FRONTEND_URL_1,
   process.env.FRONTEND_URL_2,
@@ -231,9 +220,21 @@ interface ModelConfig {
   bearerToken: string | undefined
   apiUrl: string
   stop: string | undefined
+  authed: boolean
 }
 
 function getModelConfig(model: string): ModelConfig | undefined {
+  const AUTHED_MODELS = new Set([
+    "gpt-4",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "gpt-5",
+    "gpt-5-chat-latest",
+    "o1-preview",
+    "o1-mini",
+  ]);
+
   const provider = getProvider(model)
   switch (provider) {
     case undefined:
@@ -245,6 +246,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
         bearerToken: secrets.DEEPINFRA_BEARER_TOKEN,
         apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
         stop: "END_OF_STREAM",
+        authed: AUTHED_MODELS.has(model),
       }
     case "together":
       return {
@@ -253,6 +255,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
         bearerToken: secrets.TOGETHER_BEARER_TOKEN,
         apiUrl: "https://api.together.xyz/v1/chat/completions",
         stop: "<|eot_id|>",
+        authed: AUTHED_MODELS.has(model),
       }
     case "openrouter":
       return {
@@ -261,6 +264,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
         bearerToken: secrets.OPENROUTER_BEARER_TOKEN,
         apiUrl: "https://openrouter.ai/api/v1/chat/completions",
         stop: "END_OF_STREAM",
+        authed: AUTHED_MODELS.has(model),
       }
     case "openai":
       return {
@@ -269,6 +273,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
         bearerToken: secrets.BEARER_TOKEN,
         apiUrl: "https://api.openai.com/v1/chat/completions",
         stop: model === "o1-preview" || model === "o1-mini" || model === "gpt-5" ? undefined : "END_OF_STREAM",
+        authed: AUTHED_MODELS.has(model),
       }
   }
 }
@@ -304,9 +309,9 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     if (!modelConfig) {
       throw new Error("Invalid model");
     }
-    const { apiType, systemMessage, bearerToken, stop, apiUrl } = modelConfig;
+    const { apiType, systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
     if (apiType === 'chat') {
-      if (AUTHED_MODELS.has(model) && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
+      if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
         throw new Error("Invalid auth key");
       }
       const chatMessages = [
