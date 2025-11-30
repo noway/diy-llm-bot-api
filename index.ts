@@ -279,6 +279,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
 }
 
 async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
+  let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
   try {
     if (typeof reqBody !== "string") {
       throw new Error("reqBody is not a string");
@@ -366,7 +367,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         return
       }
 
-      const reader = response.body.getReader();
+      reader = response.body.getReader();
       const doubleNewlineReader = new DoubleNewlineReader(reader);
       let completion = "";
       while (true) {
@@ -437,7 +438,7 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const reader = response.body.getReader();
+      reader = response.body.getReader();
       const doubleNewlineReader = new DoubleNewlineReader(reader);
       let completion = "";
       while (true) {
@@ -479,6 +480,9 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         res.end();
       }
     }
+  }
+  if (reader) {
+    reader.cancel();
   }
 };
 
