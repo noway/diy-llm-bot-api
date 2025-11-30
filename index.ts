@@ -278,6 +278,166 @@ function getModelConfig(model: string): ModelConfig | undefined {
   }
 }
 
+async function streamChatCompletion(res: http.ServerResponse, authKey: string | undefined, messages: Message[], model: string, modelConfig: ModelConfig) {
+  const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
+  let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
+
+  if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
+    throw new Error("Invalid auth key");
+  }
+  const chatMessages = [
+    ...(systemMessage === 'custom' ? [{
+      role: "system",
+      content: "You are a helpful AI language model assistant.",
+    }] : []),
+    ...messages.map((m) => ({
+      role: m.party === "human" ? "user" : "assistant",
+      content: m.text,
+    })),
+  ];
+  const options = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${bearerToken}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: chatMessages,
+      stream: model !== "o1-preview" && model !== "o1-mini" && model !== "gpt-5",
+      stop,
+    }),
+  };
+  const response = await fetch(
+    apiUrl,
+    options
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    // TODO: send 4xx/5xx status code and don't put error object in text
+    throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
+  }
+  if (!response.body) {
+    throw new Error("No response body");
+  }
+
+  // send server events
+  res.setHeader("Transfer-Encoding", "chunked");
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  if (model === "o1-preview" || model === "o1-mini" || model === "gpt-5") {
+    const result = await response.text()
+    const data = JSON.parse(result)
+    const completion = data.choices[0].message.content
+    res.write(completion)
+    res.end()
+    console.log("completion", completion);
+    return
+  }
+
+  reader = response.body.getReader();
+  const doubleNewlineReader = new DoubleNewlineReader(reader);
+  let completion = "";
+  while (true) {
+    const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
+    if (done) {
+      break;
+    }
+    const dataArray = chunkToDataArray<ChatData>(dataString);
+
+    for (let i = 0; i < dataArray.length; i++) {
+      const data = dataArray[i];
+      const { choices } = data;
+      if (!choices) {
+        continue
+      }
+      const lastChoice = choices[choices.length - 1];
+      const { delta } = lastChoice;
+      const content = delta.content ?? "";
+      res.write(content);
+      completion += content;
+    }
+  }
+  res.end();
+  console.log("completion", completion);
+  return reader;
+}
+
+async function streamInstructCompletion(res: http.ServerResponse, messages: Message[], model: string, modelConfig: ModelConfig) {
+  const { bearerToken } = modelConfig;
+  let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
+
+  const prompt = generatePrompt(messages);
+  const encoded: { bpe: number[]; text: string[] } =
+    tokenizer.encode(prompt);
+  const promptTokens = encoded.bpe.length;
+
+  if (promptTokens >= MAX_TOKENS - TOKENS_SAFETY_MARGIN) {
+    throw new Error("Too many tokens.");
+  }
+
+  const temperature = 0.5;
+  const options = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${bearerToken}`,
+    },
+    body: JSON.stringify({
+      model,
+      prompt,
+      temperature,
+      max_tokens: MAX_TOKENS - promptTokens - TOKENS_SAFETY_MARGIN,
+      stream: true,
+      stop: "END_OF_STREAM",
+    }),
+  };
+  const response = await fetch(
+    "https://api.openai.com/v1/completions",
+    options
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    // TODO: send 4xx/5xx status code and don't put error object in text
+    throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
+  }
+  if (!response.body) {
+    throw new Error("No response body");
+  }
+
+  // send server events
+  res.setHeader("Transfer-Encoding", "chunked");
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  reader = response.body.getReader();
+  const doubleNewlineReader = new DoubleNewlineReader(reader);
+  let completion = "";
+  while (true) {
+    const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
+    if (done) {
+      break;
+    }
+
+    // Convert the binary data to a string
+    const dataArray = chunkToDataArray(dataString);
+
+    for (let i = 0; i < dataArray.length; i++) {
+      const data = dataArray[i];
+      const token = data.choices[0].text;
+      res.write(token);
+      completion += token;
+    }
+  }
+  res.end();
+  console.log("completion", completion.trim());
+  return reader;
+}
+
 async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
   let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
   try {
@@ -310,155 +470,11 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     if (!modelConfig) {
       throw new Error("Invalid model");
     }
-    const { apiType, systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
+    const { apiType } = modelConfig;
     if (apiType === 'chat') {
-      if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
-        throw new Error("Invalid auth key");
-      }
-      const chatMessages = [
-        ...(systemMessage === 'custom' ? [{
-          role: "system",
-          content: "You are a helpful AI language model assistant.",
-        }] : []),
-        ...messages.map((m) => ({
-          role: m.party === "human" ? "user" : "assistant",
-          content: m.text,
-        })),
-      ];
-      const options = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${bearerToken}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: chatMessages,
-          stream: model !== "o1-preview" && model !== "o1-mini" && model !== "gpt-5",
-          stop,
-        }),
-      };
-      const response = await fetch(
-        apiUrl,
-        options
-      );
-      if (!response.ok) {
-        const text = await response.text();
-        // TODO: send 4xx/5xx status code and don't put error object in text
-        throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
-      }
-      if (!response.body) {
-        throw new Error("No response body");
-      }
-
-      // send server events
-      res.setHeader("Transfer-Encoding", "chunked");
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-
-      if (model === "o1-preview" || model === "o1-mini" || model === "gpt-5") {
-        const result = await response.text()
-        const data = JSON.parse(result)
-        const completion = data.choices[0].message.content
-        res.write(completion)
-        res.end()
-        console.log("completion", completion);
-        return
-      }
-
-      reader = response.body.getReader();
-      const doubleNewlineReader = new DoubleNewlineReader(reader);
-      let completion = "";
-      while (true) {
-        const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
-        if (done) {
-          break;
-        }
-        const dataArray = chunkToDataArray<ChatData>(dataString);
-
-        for (let i = 0; i < dataArray.length; i++) {
-          const data = dataArray[i];
-          const { choices } = data;
-          if (!choices) {
-            continue
-          }
-          const lastChoice = choices[choices.length - 1];
-          const { delta } = lastChoice;
-          const content = delta.content ?? "";
-          res.write(content);
-          completion += content;
-        }
-      }
-      res.end();
-      console.log("completion", completion);
+      reader = await streamChatCompletion(res, authKey, messages, model, modelConfig);
     } else if (apiType === 'instruct') {
-      const prompt = generatePrompt(messages);
-      const encoded: { bpe: number[]; text: string[] } =
-        tokenizer.encode(prompt);
-      const promptTokens = encoded.bpe.length;
-
-      if (promptTokens >= MAX_TOKENS - TOKENS_SAFETY_MARGIN) {
-        throw new Error("Too many tokens.");
-      }
-
-      const temperature = 0.5;
-      const options = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${bearerToken}`,
-        },
-        body: JSON.stringify({
-          model,
-          prompt,
-          temperature,
-          max_tokens: MAX_TOKENS - promptTokens - TOKENS_SAFETY_MARGIN,
-          stream: true,
-          stop: "END_OF_STREAM",
-        }),
-      };
-      const response = await fetch(
-        "https://api.openai.com/v1/completions",
-        options
-      );
-
-      if (!response.ok) {
-        const text = await response.text();
-        // TODO: send 4xx/5xx status code and don't put error object in text
-        throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
-      }
-      if (!response.body) {
-        throw new Error("No response body");
-      }
-
-      // send server events
-      res.setHeader("Transfer-Encoding", "chunked");
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-
-      reader = response.body.getReader();
-      const doubleNewlineReader = new DoubleNewlineReader(reader);
-      let completion = "";
-      while (true) {
-        const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
-        if (done) {
-          break;
-        }
-
-        // Convert the binary data to a string
-        const dataArray = chunkToDataArray(dataString);
-
-        for (let i = 0; i < dataArray.length; i++) {
-          const data = dataArray[i];
-          const token = data.choices[0].text;
-          res.write(token);
-          completion += token;
-        }
-      }
-      res.end();
-      console.log("completion", completion.trim());
+      reader = await streamInstructCompletion(res, messages, model, modelConfig);
     }
   } catch (error) {
     console.error("error", error);
