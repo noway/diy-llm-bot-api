@@ -278,7 +278,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
   }
 }
 
-async function streamChatCompletion(res: http.ServerResponse, authKey: string | undefined, messages: Message[], model: string, modelConfig: ModelConfig) {
+async function streamChatCompletion(onChunk: (content: string) => void, authKey: string | undefined, messages: Message[], model: string, modelConfig: ModelConfig) {
   const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
 
   if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
@@ -320,18 +320,11 @@ async function streamChatCompletion(res: http.ServerResponse, authKey: string | 
     throw new Error("No response body");
   }
 
-  // send server events
-  res.setHeader("Transfer-Encoding", "chunked");
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
   if (model === "o1-preview" || model === "o1-mini" || model === "gpt-5") {
     const result = await response.text()
     const data = JSON.parse(result)
     const completion = data.choices[0].message.content
-    res.write(completion)
-    res.end()
+    onChunk(completion);
     console.log("completion", completion);
     return
   }
@@ -356,11 +349,10 @@ async function streamChatCompletion(res: http.ServerResponse, authKey: string | 
         const lastChoice = choices[choices.length - 1];
         const { delta } = lastChoice;
         const content = delta.content ?? "";
-        res.write(content);
+        onChunk(content);
         completion += content;
       }
     }
-    res.end();
     console.log("completion", completion);
   } catch (error) {
     reader.cancel();
@@ -369,7 +361,7 @@ async function streamChatCompletion(res: http.ServerResponse, authKey: string | 
   reader.cancel();
 }
 
-async function streamInstructCompletion(res: http.ServerResponse, messages: Message[], model: string, modelConfig: ModelConfig) {
+async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: string, modelConfig: ModelConfig) {
   const { bearerToken } = modelConfig;
 
   const prompt = generatePrompt(messages);
@@ -411,12 +403,6 @@ async function streamInstructCompletion(res: http.ServerResponse, messages: Mess
     throw new Error("No response body");
   }
 
-  // send server events
-  res.setHeader("Transfer-Encoding", "chunked");
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
   const reader = response.body.getReader();
   try {
     const doubleNewlineReader = new DoubleNewlineReader(reader);
@@ -433,11 +419,10 @@ async function streamInstructCompletion(res: http.ServerResponse, messages: Mess
       for (let i = 0; i < dataArray.length; i++) {
         const data = dataArray[i];
         const token = data.choices[0].text;
-        res.write(token);
+        onChunk(token);
         completion += token;
       }
     }
-    res.end();
     console.log("completion", completion.trim());
   } catch (error) {
     reader.cancel();
@@ -477,12 +462,20 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     if (!modelConfig) {
       throw new Error("Invalid model");
     }
+
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    const onChunk = (content: string) => res.write(content);
     const { apiType } = modelConfig;
     if (apiType === 'chat') {
-      await streamChatCompletion(res, authKey, messages, model, modelConfig);
+      await streamChatCompletion(onChunk, authKey, messages, model, modelConfig);
     } else if (apiType === 'instruct') {
-      await streamInstructCompletion(res, messages, model, modelConfig);
+      await streamInstructCompletion(onChunk, messages, model, modelConfig);
     }
+    res.end();
   } catch (error) {
     console.error("error", error);
     try {
