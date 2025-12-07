@@ -280,7 +280,6 @@ function getModelConfig(model: string): ModelConfig | undefined {
 
 async function streamChatCompletion(res: http.ServerResponse, authKey: string | undefined, messages: Message[], model: string, modelConfig: ModelConfig) {
   const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
-  let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
 
   if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
     throw new Error("Invalid auth key");
@@ -337,37 +336,41 @@ async function streamChatCompletion(res: http.ServerResponse, authKey: string | 
     return
   }
 
-  reader = response.body.getReader();
-  const doubleNewlineReader = new DoubleNewlineReader(reader);
-  let completion = "";
-  while (true) {
-    const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
-    if (done) {
-      break;
-    }
-    const dataArray = chunkToDataArray<ChatData>(dataString);
-
-    for (let i = 0; i < dataArray.length; i++) {
-      const data = dataArray[i];
-      const { choices } = data;
-      if (!choices) {
-        continue
+  const reader = response.body.getReader();
+  try {
+    const doubleNewlineReader = new DoubleNewlineReader(reader);
+    let completion = "";
+    while (true) {
+      const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
+      if (done) {
+        break;
       }
-      const lastChoice = choices[choices.length - 1];
-      const { delta } = lastChoice;
-      const content = delta.content ?? "";
-      res.write(content);
-      completion += content;
+      const dataArray = chunkToDataArray<ChatData>(dataString);
+
+      for (let i = 0; i < dataArray.length; i++) {
+        const data = dataArray[i];
+        const { choices } = data;
+        if (!choices) {
+          continue
+        }
+        const lastChoice = choices[choices.length - 1];
+        const { delta } = lastChoice;
+        const content = delta.content ?? "";
+        res.write(content);
+        completion += content;
+      }
     }
+    res.end();
+    console.log("completion", completion);
+  } catch (error) {
+    reader.cancel();
+    throw error;
   }
-  res.end();
-  console.log("completion", completion);
-  return reader;
+  reader.cancel();
 }
 
 async function streamInstructCompletion(res: http.ServerResponse, messages: Message[], model: string, modelConfig: ModelConfig) {
   const { bearerToken } = modelConfig;
-  let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
 
   const prompt = generatePrompt(messages);
   const encoded: { bpe: number[]; text: string[] } =
@@ -414,32 +417,36 @@ async function streamInstructCompletion(res: http.ServerResponse, messages: Mess
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  reader = response.body.getReader();
-  const doubleNewlineReader = new DoubleNewlineReader(reader);
-  let completion = "";
-  while (true) {
-    const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
-    if (done) {
-      break;
-    }
+  const reader = response.body.getReader();
+  try {
+    const doubleNewlineReader = new DoubleNewlineReader(reader);
+    let completion = "";
+    while (true) {
+      const { done, value: dataString } = await doubleNewlineReader.readUntilDoubleNewline();
+      if (done) {
+        break;
+      }
 
-    // Convert the binary data to a string
-    const dataArray = chunkToDataArray(dataString);
+      // Convert the binary data to a string
+      const dataArray = chunkToDataArray(dataString);
 
-    for (let i = 0; i < dataArray.length; i++) {
-      const data = dataArray[i];
-      const token = data.choices[0].text;
-      res.write(token);
-      completion += token;
+      for (let i = 0; i < dataArray.length; i++) {
+        const data = dataArray[i];
+        const token = data.choices[0].text;
+        res.write(token);
+        completion += token;
+      }
     }
+    res.end();
+    console.log("completion", completion.trim());
+  } catch (error) {
+    reader.cancel();
+    throw error;
   }
-  res.end();
-  console.log("completion", completion.trim());
-  return reader;
+  reader.cancel();
 }
 
 async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
-  let reader: ReadableStreamDefaultReader<BufferSource> | undefined;
   try {
     if (typeof reqBody !== "string") {
       throw new Error("reqBody is not a string");
@@ -472,9 +479,9 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     }
     const { apiType } = modelConfig;
     if (apiType === 'chat') {
-      reader = await streamChatCompletion(res, authKey, messages, model, modelConfig);
+      await streamChatCompletion(res, authKey, messages, model, modelConfig);
     } else if (apiType === 'instruct') {
-      reader = await streamInstructCompletion(res, messages, model, modelConfig);
+      await streamInstructCompletion(res, messages, model, modelConfig);
     }
   } catch (error) {
     console.error("error", error);
@@ -496,9 +503,6 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
         res.end();
       }
     }
-  }
-  if (reader) {
-    reader.cancel();
   }
 };
 
