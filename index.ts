@@ -355,10 +355,10 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
     }
     console.log("completion", completion);
   } catch (error) {
-    reader.cancel();
+    await reader.cancel();
     throw error;
   }
-  reader.cancel();
+  await reader.cancel();
 }
 
 async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: string, modelConfig: ModelConfig) {
@@ -425,10 +425,10 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
     }
     console.log("completion", completion.trim());
   } catch (error) {
-    reader.cancel();
+    await reader.cancel();
     throw error;
   }
-  reader.cancel();
+  await reader.cancel();
 }
 
 async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
