@@ -525,25 +525,31 @@ function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse) {
   }
 }
 
-const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
+const setCors = (req: http.IncomingMessage, res: http.ServerResponse) => {
   if (origins.includes(req.headers.origin ?? "")) {
     res.setHeader("Access-Control-Allow-Methods", "POST");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Allow-Origin", req.headers.origin ?? "");
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
+};
+
+const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
   if (req.url === "/") {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.write("OK");
     res.end();
   }
   else if (req.method === "OPTIONS" && req.url === "/is-authed") {
+    setCors(req, res);
     res.end();
   }
   else if (req.method === "OPTIONS" && req.url === "/generate-chat-completion-streaming") {
+    setCors(req, res);
     res.end();
   }
   else if (req.method === "POST" && req.url === "/is-authed") {
+    setCors(req, res);
     const reqBody: Buffer[] = [];
     res.setHeader("Content-Type", "application/json");
     req.on("data", (chunk) => {
@@ -554,6 +560,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     });
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
+    setCors(req, res);
     const reqBody: Buffer[] = [];
     req.on("data", (chunk) => {
       reqBody.push(chunk);
