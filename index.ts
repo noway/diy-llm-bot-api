@@ -271,7 +271,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
         apiType: model === "gpt-3.5-turbo-instruct" ? 'instruct' : 'chat',
         systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
         bearerToken: secrets.BEARER_TOKEN,
-        apiUrl: "https://api.openai.com/v1/chat/completions",
+        apiUrl: model === "gpt-3.5-turbo-instruct" ? "https://api.openai.com/v1/completions" : "https://api.openai.com/v1/chat/completions",
         stop: model === "o1-preview" || model === "o1-mini" || model === "gpt-5" ? undefined : "END_OF_STREAM",
         authed: AUTHED_MODELS.has(model),
       }
@@ -362,7 +362,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
 }
 
 async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: string, modelConfig: ModelConfig) {
-  const { bearerToken } = modelConfig;
+  const { bearerToken, apiUrl } = modelConfig;
 
   const prompt = generatePrompt(messages);
   const encoded: { bpe: number[]; text: string[] } =
@@ -390,7 +390,7 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
     }),
   };
   const response = await fetch(
-    "https://api.openai.com/v1/completions",
+    apiUrl,
     options
   );
 
