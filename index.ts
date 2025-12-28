@@ -433,9 +433,6 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
 
 async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
   try {
-    if (typeof reqBody !== "string") {
-      throw new Error("reqBody is not a string");
-    }
     const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const cookies = CookiesSchema.parse(reqCookies);
     const parsed = JSON.parse(reqBody);
