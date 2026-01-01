@@ -547,11 +547,8 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   }
   else if (req.method === "POST" && req.url === "/is-authed") {
     setCors(req, res);
-    const reqBody: Buffer[] = [];
     res.setHeader("Content-Type", "application/json");
-    req.on("data", (chunk) => {
-      reqBody.push(chunk);
-    });
+    req.on("data", () => {});
     req.on("end", () => {
       postIsAuthed(req, res);
     });
