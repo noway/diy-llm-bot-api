@@ -21,6 +21,31 @@ console.log("origins", origins);
 const port = process.env.PORT ?? 3000;
 const httpPort = process.env.HTTP_PORT ?? 8080;
 
+const MODEL_TO_PROVIDER = {
+  "mistralai/Mixtral-8x7B-Instruct-v0.1": "deepinfra",
+  "meta-llama/Meta-Llama-3.1-405B-Instruct": "deepinfra",
+  "meta-llama/Llama-3-70b-chat-hf": "together",
+  "anthropic/claude-3-opus:beta": "openrouter",
+  "anthropic/claude-3.5-sonnet": "openrouter",
+  "mistralai/mistral-large": "openrouter",
+  "deepseek/deepseek-coder": "openrouter",
+  "gpt-3.5-turbo-instruct": "openai",
+  "gpt-3.5-turbo": "openai",
+  "gpt-4": "openai",
+  "gpt-4-1106-preview": "openai",
+  "gpt-4.1": "openai",
+  "gpt-4.1-mini": "openai",
+  "gpt-4.1-nano": "openai",
+  "gpt-5": "openai",
+  "gpt-5-chat-latest": "openai",
+  "gpt-4o-mini": "openai",
+  "gpt-4o": "openai",
+  "o1-preview": "openai",
+  "o1-mini": "openai",
+} as const;
+type Model = keyof typeof MODEL_TO_PROVIDER;
+const MODELS = Object.keys(MODEL_TO_PROVIDER) as Model[];
+
 interface TopLogProb {
   token: string;
   logprob: number;
@@ -58,7 +83,7 @@ const MessagesSchema = z.array(MessageSchema);
 
 const BodySchema = z.object({
   messages: MessagesSchema,
-  model: z.string(),
+  model: z.enum(MODELS),
 });
 
 const CookiesSchema = z.object({
@@ -185,35 +210,6 @@ function timeSafeCompare(a: string, b: string) {
   return crypto.timingSafeEqual(ah, bh) && a === b;
 }
 
-function getProvider(model: string) {
-  switch (model) {
-    case "mistralai/Mixtral-8x7B-Instruct-v0.1":
-    case "meta-llama/Meta-Llama-3.1-405B-Instruct":
-      return "deepinfra"
-    case "meta-llama/Llama-3-70b-chat-hf":
-      return "together"
-    case "anthropic/claude-3-opus:beta":
-    case "anthropic/claude-3.5-sonnet":
-    case "mistralai/mistral-large":
-    case "deepseek/deepseek-coder":
-      return "openrouter"
-    case "gpt-3.5-turbo-instruct":
-    case "gpt-3.5-turbo":
-    case "gpt-4":
-    case "gpt-4-1106-preview":
-    case "gpt-4.1":
-    case "gpt-4.1-mini":
-    case "gpt-4.1-nano":
-    case "gpt-5":
-    case "gpt-5-chat-latest":
-    case "gpt-4o-mini":
-    case "gpt-4o":
-    case "o1-preview":
-    case "o1-mini":
-      return "openai"
-  }
-}
-
 interface ModelConfig {
   apiType: 'chat' | 'instruct'
   systemMessage: 'default' | 'custom'
@@ -223,7 +219,7 @@ interface ModelConfig {
   authed: boolean
 }
 
-function getModelConfig(model: string): ModelConfig | undefined {
+function getModelConfig(model: Model): ModelConfig {
   const AUTHED_MODELS = new Set([
     "gpt-4",
     "gpt-4.1",
@@ -235,10 +231,8 @@ function getModelConfig(model: string): ModelConfig | undefined {
     "o1-mini",
   ]);
 
-  const provider = getProvider(model)
+  const provider = MODEL_TO_PROVIDER[model]
   switch (provider) {
-    case undefined:
-      return undefined
     case "deepinfra":
       return {
         apiType: 'chat',
@@ -278,7 +272,7 @@ function getModelConfig(model: string): ModelConfig | undefined {
   }
 }
 
-async function streamChatCompletion(onChunk: (content: string) => void, authKey: string | undefined, messages: Message[], model: string, modelConfig: ModelConfig) {
+async function streamChatCompletion(onChunk: (content: string) => void, authKey: string | undefined, messages: Message[], model: Model, modelConfig: ModelConfig) {
   const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
 
   if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
@@ -361,7 +355,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
   await reader.cancel();
 }
 
-async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: string, modelConfig: ModelConfig) {
+async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: Model, modelConfig: ModelConfig) {
   const { bearerToken, apiUrl } = modelConfig;
 
   const prompt = generatePrompt(messages);
@@ -456,9 +450,6 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
     console.log("human-prompt", lastHumanMessage.text);
 
     const modelConfig = getModelConfig(model);
-    if (!modelConfig) {
-      throw new Error("Invalid model");
-    }
 
     res.setHeader("Transfer-Encoding", "chunked");
     res.setHeader("Content-Type", "text/event-stream");
