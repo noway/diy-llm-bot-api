@@ -2,7 +2,7 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 import { z } from "zod";
-import { parse } from "cookie";
+import { parse, type Cookies } from "cookie";
 import GPT3Tokenizer from "gpt3-tokenizer";
 import crypto from "crypto";
 import secrets from "./secrets.json" with { type: "json" };
@@ -425,9 +425,8 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
   await reader.cancel();
 }
 
-async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, res: http.ServerResponse, reqBody: string) {
+async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: http.ServerResponse, reqBody: string) {
   try {
-    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const cookies = CookiesSchema.parse(reqCookies);
     const parsed = JSON.parse(reqBody);
     const body = BodySchema.parse(parsed);
@@ -487,9 +486,8 @@ async function postGenerateChatCompletionStreaming(req: http.IncomingMessage, re
   }
 };
 
-function postIsAuthed(req: http.IncomingMessage, res: http.ServerResponse) {
+function postIsAuthed(reqCookies: Cookies, res: http.ServerResponse) {
   try {
-    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const cookies = CookiesSchema.parse(reqCookies);
     const authKey = cookies["__Secure-authKey"];
     res.write(JSON.stringify({
@@ -539,19 +537,21 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   else if (req.method === "POST" && req.url === "/is-authed") {
     setCors(req, res);
     res.setHeader("Content-Type", "application/json");
+    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     req.on("data", () => {});
     req.on("end", () => {
-      postIsAuthed(req, res);
+      postIsAuthed(reqCookies, res);
     });
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
     setCors(req, res);
+    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const reqBody: Buffer[] = [];
     req.on("data", (chunk) => {
       reqBody.push(chunk);
     });
     req.on("end", async () => {
-      await postGenerateChatCompletionStreaming(req, res, Buffer.concat(reqBody).toString());
+      await postGenerateChatCompletionStreaming(reqCookies, res, Buffer.concat(reqBody).toString());
     });
   }
   else {
