@@ -575,7 +575,7 @@ const httpsServer = https
   .listen(port);
 console.log(`Server running on port ${port}`);
 
-const httpServer = http.createServer((req, res) => {
+const httpServer = http.createServer((_req, res) => {
   res.writeHead(403, { "Content-Type": "text/plain" });
   res.end("Forbidden");
 }).listen(httpPort);
