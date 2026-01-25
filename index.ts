@@ -433,8 +433,7 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
     const authKey = cookies["__Secure-authKey"];
     const messages = body.messages;
     const model = body.model;
-    const humanMessages = messages.filter((m) => m.party === "human");
-    const lastHumanMessage = humanMessages[humanMessages.length - 1];
+    const lastHumanMessage = messages.findLast((m) => m.party === "human");
     if (messages[0]) {
       if (messages[0].party !== "human") {
         throw new Error("Validation error");
