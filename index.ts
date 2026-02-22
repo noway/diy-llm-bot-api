@@ -219,18 +219,18 @@ interface ModelConfig {
   authed: boolean
 }
 
-function getModelConfig(model: Model): ModelConfig {
-  const AUTHED_MODELS = new Set([
-    "gpt-4",
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4.1-nano",
-    "gpt-5",
-    "gpt-5-chat-latest",
-    "o1-preview",
-    "o1-mini",
-  ]);
+const AUTHED_MODELS: Set<Model> = new Set([
+  "gpt-4",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-5",
+  "gpt-5-chat-latest",
+  "o1-preview",
+  "o1-mini",
+]);
 
+function getModelConfig(model: Model): ModelConfig {
   const provider = MODEL_TO_PROVIDER[model]
   switch (provider) {
     case "deepinfra":
