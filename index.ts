@@ -232,6 +232,7 @@ const AUTHED_MODELS: Set<Model> = new Set([
 
 function getModelConfig(model: Model): ModelConfig {
   const provider = MODEL_TO_PROVIDER[model]
+  const authed = AUTHED_MODELS.has(model);
   switch (provider) {
     case "deepinfra":
       return {
@@ -240,7 +241,7 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.DEEPINFRA_BEARER_TOKEN,
         apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
         stop: "END_OF_STREAM",
-        authed: AUTHED_MODELS.has(model),
+        authed,
       }
     case "together":
       return {
@@ -249,7 +250,7 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.TOGETHER_BEARER_TOKEN,
         apiUrl: "https://api.together.xyz/v1/chat/completions",
         stop: "<|eot_id|>",
-        authed: AUTHED_MODELS.has(model),
+        authed,
       }
     case "openrouter":
       return {
@@ -258,7 +259,7 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.OPENROUTER_BEARER_TOKEN,
         apiUrl: "https://openrouter.ai/api/v1/chat/completions",
         stop: "END_OF_STREAM",
-        authed: AUTHED_MODELS.has(model),
+        authed,
       }
     case "openai":
       return {
@@ -267,7 +268,7 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.BEARER_TOKEN,
         apiUrl: model === "gpt-3.5-turbo-instruct" ? "https://api.openai.com/v1/completions" : "https://api.openai.com/v1/chat/completions",
         stop: model === "o1-preview" || model === "o1-mini" || model === "gpt-5" ? undefined : "END_OF_STREAM",
-        authed: AUTHED_MODELS.has(model),
+        authed,
       }
   }
 }
