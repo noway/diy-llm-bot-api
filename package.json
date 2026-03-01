@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "license": "MIT",
   "dependencies": {
-    "cookie": "^1.1.1",
     "gpt3-tokenizer": "^1.1.5",
     "zod": "^4.3.6"
   },

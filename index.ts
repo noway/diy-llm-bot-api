@@ -2,7 +2,17 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 import { z } from "zod";
-import { parse, type Cookies } from "cookie";
+type Cookies = Record<string, string | undefined>;
+
+function parseCookie(str: string): Cookies {
+  const cookies: Cookies = {};
+  for (const pair of str.split('; ')) {
+    const eqIdx = pair.indexOf('=');
+    if (eqIdx < 1) continue;
+    cookies[decodeURIComponent(pair.slice(0, eqIdx))] = decodeURIComponent(pair.slice(eqIdx + 1));
+  }
+  return cookies;
+}
 import GPT3Tokenizer from "gpt3-tokenizer";
 import crypto from "crypto";
 import secrets from "./secrets.json" with { type: "json" };
@@ -537,7 +547,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   else if (req.method === "POST" && req.url === "/is-authed") {
     setCors(req, res);
     res.setHeader("Content-Type", "application/json");
-    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const reqCookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
     req.on("data", () => {});
     req.on("end", () => {
       postIsAuthed(reqCookies, res);
@@ -545,7 +555,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
   }
   else if (req.method === "POST" && req.url === "/generate-chat-completion-streaming") {
     setCors(req, res);
-    const reqCookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const reqCookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
     const reqBody: Buffer[] = [];
     req.on("data", (chunk) => {
       reqBody.push(chunk);
