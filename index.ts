@@ -531,7 +531,11 @@ const setCors = (req: http.IncomingMessage, res: http.ServerResponse) => {
 };
 
 const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
-  if (req.url === "/") {
+  if (req.url === "/robots.txt") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("User-agent: *\nDisallow: /\n");
+  }
+  else if (req.url === "/") {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.write("OK");
     res.end();
