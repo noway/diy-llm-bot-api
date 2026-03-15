@@ -17,6 +17,20 @@ import GPT3Tokenizer from "gpt3-tokenizer";
 import crypto from "crypto";
 import secrets from "./secrets.json" with { type: "json" };
 
+const REQUIRED_SECRETS = [
+  "AUTH_KEY",
+  "BEARER_TOKEN",
+  "DEEPINFRA_BEARER_TOKEN",
+  "OPENROUTER_BEARER_TOKEN",
+  "TOGETHER_BEARER_TOKEN",
+] as const;
+
+const missingSecrets = REQUIRED_SECRETS.filter((key) => !secrets[key as keyof typeof secrets]);
+if (missingSecrets.length > 0) {
+  console.error(`FATAL: Missing keys in secrets.json:\n  ${missingSecrets.join("\n  ")}`);
+  process.exit(1);
+}
+
 const MAX_TOKENS = 4097;
 const TOKENS_SAFETY_MARGIN = 25;
 const tokenizer = new GPT3Tokenizer.default({ type: "gpt3" });
