@@ -11,6 +11,9 @@ importers:
       gpt3-tokenizer:
         specifier: ^1.1.5
         version: 1.1.5
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -31,6 +34,11 @@ packages:
     resolution: {integrity: sha512-O9iCL8MqGR0Oe9wTh0YftzIbysypNQmS5a5JG3cB3M4LMYjlAVvNnf8LUzVY9MrI7tj+YLY356uHtO2lLX2HpA==}
     engines: {node: '>=12'}
 
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
@@ -48,6 +56,8 @@ snapshots:
   gpt3-tokenizer@1.1.5:
     dependencies:
       array-keyed-map: 2.1.3
+
+  typescript@5.8.3: {}
 
   undici-types@7.16.0: {}
 
