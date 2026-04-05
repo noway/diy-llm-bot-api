@@ -95,8 +95,10 @@ interface Choice {
   finish_reason: string;
 }
 
+const MAX_MESSAGE_LENGTH = 4000;
+
 const MessageSchema = z.object({
-  text: z.string(),
+  text: z.string().max(MAX_MESSAGE_LENGTH),
   name: z.enum(["You", "Bot"]),
   party: z.enum(["bot", "human"]),
   id: z.string(),
