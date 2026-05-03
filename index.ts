@@ -6,7 +6,8 @@ type Cookies = Record<string, string | undefined>;
 
 function parseCookie(str: string): Cookies {
   const cookies: Cookies = {};
-  for (const pair of str.split('; ')) {
+  for (const raw of str.split(';')) {
+    const pair = raw.trim();
     const eqIdx = pair.indexOf('=');
     if (eqIdx < 1) continue;
     cookies[decodeURIComponent(pair.slice(0, eqIdx))] = decodeURIComponent(pair.slice(eqIdx + 1));
