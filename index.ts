@@ -195,11 +195,11 @@ Feel free to ask me anything and I will do my best to help.
 
 
 class DoubleNewlineReader {
-  reader: ReadableStreamDefaultReader<ArrayBuffer>;
+  reader: ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>;
   buffer: string;
   decoder: InstanceType<typeof TextDecoder>;
 
-  constructor(reader: ReadableStreamDefaultReader<ArrayBuffer>) {
+  constructor(reader: ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>) {
     this.reader = reader;
     this.buffer = '';
     this.decoder = new TextDecoder();
