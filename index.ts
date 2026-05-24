@@ -46,30 +46,30 @@ console.log("origins", origins);
 const port = process.env.PORT ?? 3000;
 const httpPort = process.env.HTTP_PORT ?? 8080;
 
-const MODEL_TO_PROVIDER = {
-  "mistralai/Mixtral-8x7B-Instruct-v0.1": "deepinfra",
-  "meta-llama/Meta-Llama-3.1-405B-Instruct": "deepinfra",
-  "meta-llama/Llama-3-70b-chat-hf": "together",
-  "anthropic/claude-3-opus:beta": "openrouter",
-  "anthropic/claude-3.5-sonnet": "openrouter",
-  "mistralai/mistral-large": "openrouter",
-  "deepseek/deepseek-coder": "openrouter",
-  "gpt-3.5-turbo-instruct": "openai",
-  "gpt-3.5-turbo": "openai",
-  "gpt-4": "openai",
-  "gpt-4-1106-preview": "openai",
-  "gpt-4.1": "openai",
-  "gpt-4.1-mini": "openai",
-  "gpt-4.1-nano": "openai",
-  "gpt-5": "openai",
-  "gpt-5-chat-latest": "openai",
-  "gpt-4o-mini": "openai",
-  "gpt-4o": "openai",
-  "o1-preview": "openai",
-  "o1-mini": "openai",
+const MODEL_SETTINGS = {
+  "mistralai/Mixtral-8x7B-Instruct-v0.1": { provider: "deepinfra", authed: false },
+  "meta-llama/Meta-Llama-3.1-405B-Instruct": { provider: "deepinfra", authed: false },
+  "meta-llama/Llama-3-70b-chat-hf": { provider: "together", authed: false },
+  "anthropic/claude-3-opus:beta": { provider: "openrouter", authed: false },
+  "anthropic/claude-3.5-sonnet": { provider: "openrouter", authed: false },
+  "mistralai/mistral-large": { provider: "openrouter", authed: false },
+  "deepseek/deepseek-coder": { provider: "openrouter", authed: false },
+  "gpt-3.5-turbo-instruct": { provider: "openai", authed: false },
+  "gpt-3.5-turbo": { provider: "openai", authed: false },
+  "gpt-4": { provider: "openai", authed: true },
+  "gpt-4-1106-preview": { provider: "openai", authed: false },
+  "gpt-4.1": { provider: "openai", authed: true },
+  "gpt-4.1-mini": { provider: "openai", authed: true },
+  "gpt-4.1-nano": { provider: "openai", authed: true },
+  "gpt-5": { provider: "openai", authed: true },
+  "gpt-5-chat-latest": { provider: "openai", authed: true },
+  "gpt-4o-mini": { provider: "openai", authed: false },
+  "gpt-4o": { provider: "openai", authed: false },
+  "o1-preview": { provider: "openai", authed: true },
+  "o1-mini": { provider: "openai", authed: true },
 } as const;
-type Model = keyof typeof MODEL_TO_PROVIDER;
-const MODELS = Object.keys(MODEL_TO_PROVIDER) as Model[];
+type Model = keyof typeof MODEL_SETTINGS;
+const MODELS = Object.keys(MODEL_SETTINGS) as Model[];
 
 interface TopLogProb {
   token: string;
@@ -246,20 +246,8 @@ interface ModelConfig {
   authed: boolean
 }
 
-const AUTHED_MODELS: Set<Model> = new Set([
-  "gpt-4",
-  "gpt-4.1",
-  "gpt-4.1-mini",
-  "gpt-4.1-nano",
-  "gpt-5",
-  "gpt-5-chat-latest",
-  "o1-preview",
-  "o1-mini",
-]);
-
 function getModelConfig(model: Model): ModelConfig {
-  const provider = MODEL_TO_PROVIDER[model]
-  const authed = AUTHED_MODELS.has(model);
+  const { provider, authed } = MODEL_SETTINGS[model];
   switch (provider) {
     case "deepinfra":
       return {
