@@ -97,6 +97,10 @@ interface Choice {
 }
 
 const MAX_MESSAGE_LENGTH = 4000;
+// Hard cap on the raw request body. The sliding window keeps 25 messages of at
+// most MAX_MESSAGE_LENGTH chars each, so 256KB leaves generous JSON headroom
+// while preventing an unbounded body from buffering in memory.
+const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
 const MessageSchema = z.object({
   text: z.string().max(MAX_MESSAGE_LENGTH),
@@ -566,10 +570,22 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     setCors(req, res);
     const reqCookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
     const reqBody: Buffer[] = [];
-    req.on("data", (chunk) => {
+    let bodyBytes = 0;
+    let rejected = false;
+    req.on("data", (chunk: Buffer) => {
+      if (rejected) return;
+      bodyBytes += chunk.length;
+      if (bodyBytes > MAX_REQUEST_BODY_BYTES) {
+        rejected = true;
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: false, error: { message: "Request body too large" } }));
+        req.destroy();
+        return;
+      }
       reqBody.push(chunk);
     });
     req.on("end", async () => {
+      if (rejected) return;
       await postGenerateChatCompletionStreaming(reqCookies, res, Buffer.concat(reqBody).toString());
     });
   }
