@@ -292,7 +292,7 @@ function getModelConfig(model: Model): ModelConfig {
   }
 }
 
-async function streamChatCompletion(onChunk: (content: string) => void, authKey: string | undefined, messages: Message[], model: Model, modelConfig: ModelConfig) {
+async function streamChatCompletion(onChunk: (content: string) => void, authKey: string | undefined, messages: Message[], model: Model, modelConfig: ModelConfig, signal: AbortSignal) {
   const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
 
   if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
@@ -320,6 +320,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
       stream: model !== "o1-preview" && model !== "o1-mini" && model !== "gpt-5",
       stop,
     }),
+    signal,
   };
   const response = await fetch(
     apiUrl,
@@ -375,7 +376,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
   await reader.cancel();
 }
 
-async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: Model, modelConfig: ModelConfig) {
+async function streamInstructCompletion(onChunk: (content: string) => void, messages: Message[], model: Model, modelConfig: ModelConfig, signal: AbortSignal) {
   const { bearerToken, apiUrl } = modelConfig;
 
   const prompt = generatePrompt(messages);
@@ -402,6 +403,7 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
       stream: true,
       stop: "END_OF_STREAM",
     }),
+    signal,
   };
   const response = await fetch(
     apiUrl,
@@ -446,6 +448,8 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
 }
 
 async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: http.ServerResponse, reqBody: string) {
+  const ac = new AbortController();
+  res.on("close", () => ac.abort());
   try {
     const cookies = CookiesSchema.parse(reqCookies);
     const parsed = JSON.parse(reqBody);
@@ -477,12 +481,13 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
     const onChunk = (content: string) => res.write(content);
     const { apiType } = modelConfig;
     if (apiType === 'chat') {
-      await streamChatCompletion(onChunk, authKey, messages, model, modelConfig);
+      await streamChatCompletion(onChunk, authKey, messages, model, modelConfig, ac.signal);
     } else if (apiType === 'instruct') {
-      await streamInstructCompletion(onChunk, messages, model, modelConfig);
+      await streamInstructCompletion(onChunk, messages, model, modelConfig, ac.signal);
     }
     res.end();
   } catch (error) {
+    if (ac.signal.aborted) return;
     console.error("error", error);
     try {
       if (!res.headersSent) {
