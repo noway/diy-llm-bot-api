@@ -241,6 +241,48 @@ function timeSafeCompare(a: string, b: string) {
   return crypto.timingSafeEqual(ah, bh) && a === b;
 }
 
+const UPSTREAM_MAX_ATTEMPTS = 3;
+const UPSTREAM_RETRY_BASE_DELAY_MS = 300;
+
+function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(signal.reason ?? new Error("Aborted"));
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason ?? new Error("Aborted"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function fetchUpstreamWithRetry(apiUrl: string, options: RequestInit, signal: AbortSignal): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= UPSTREAM_MAX_ATTEMPTS; attempt++) {
+    const lastAttempt = attempt === UPSTREAM_MAX_ATTEMPTS;
+    try {
+      const response = await fetch(apiUrl, options);
+      if (response.status >= 500 && !lastAttempt) {
+        console.warn(`upstream returned ${response.status}, retrying (attempt ${attempt}/${UPSTREAM_MAX_ATTEMPTS})`);
+        await response.body?.cancel();
+        await abortableDelay(UPSTREAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), signal);
+        continue;
+      }
+      return response;
+    } catch (error) {
+      if (signal.aborted) throw error;
+      lastError = error;
+      if (lastAttempt) throw error;
+      console.warn(`upstream fetch failed, retrying (attempt ${attempt}/${UPSTREAM_MAX_ATTEMPTS}):`, (error as Error).message);
+      await abortableDelay(UPSTREAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), signal);
+    }
+  }
+  throw lastError;
+}
+
 interface ModelConfig {
   apiType: 'chat' | 'instruct'
   systemMessage: 'default' | 'custom'
@@ -322,10 +364,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
     }),
     signal,
   };
-  const response = await fetch(
-    apiUrl,
-    options
-  );
+  const response = await fetchUpstreamWithRetry(apiUrl, options, signal);
   if (!response.ok) {
     const text = await response.text();
     // TODO: send 4xx/5xx status code and don't put error object in text
@@ -405,10 +444,7 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
     }),
     signal,
   };
-  const response = await fetch(
-    apiUrl,
-    options
-  );
+  const response = await fetchUpstreamWithRetry(apiUrl, options, signal);
 
   if (!response.ok) {
     const text = await response.text();
