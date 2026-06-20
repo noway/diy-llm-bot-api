@@ -226,7 +226,7 @@ class DoubleNewlineReader {
         }
         break;
       }
-      const dataString = this.decoder.decode(value).replace(/\r\n/g, "\n");
+      const dataString = this.decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
       this.buffer += dataString;  // Assuming value is a string; adjust if not
     }
     return { done: true, value: this.buffer };
