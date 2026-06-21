@@ -71,6 +71,8 @@ const MODEL_SETTINGS = {
 type Model = keyof typeof MODEL_SETTINGS;
 const MODELS = Object.keys(MODEL_SETTINGS) as Model[];
 
+const NON_STREAMING_MODELS = new Set<Model>(["o1-preview", "o1-mini", "gpt-5"]);
+
 interface TopLogProb {
   token: string;
   logprob: number;
@@ -328,7 +330,7 @@ function getModelConfig(model: Model): ModelConfig {
         systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
         bearerToken: secrets.BEARER_TOKEN,
         apiUrl: model === "gpt-3.5-turbo-instruct" ? "https://api.openai.com/v1/completions" : "https://api.openai.com/v1/chat/completions",
-        stop: model === "o1-preview" || model === "o1-mini" || model === "gpt-5" ? undefined : "END_OF_STREAM",
+        stop: NON_STREAMING_MODELS.has(model) ? undefined : "END_OF_STREAM",
         authed,
       }
   }
@@ -359,7 +361,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
     body: JSON.stringify({
       model,
       messages: chatMessages,
-      stream: model !== "o1-preview" && model !== "o1-mini" && model !== "gpt-5",
+      stream: !NON_STREAMING_MODELS.has(model),
       stop,
     }),
     signal,
@@ -374,7 +376,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
     throw new Error("No response body");
   }
 
-  if (model === "o1-preview" || model === "o1-mini" || model === "gpt-5") {
+  if (NON_STREAMING_MODELS.has(model)) {
     const result = await response.text()
     const data = JSON.parse(result)
     const completion = data.choices[0].message.content
