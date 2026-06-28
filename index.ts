@@ -399,7 +399,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
       for (let i = 0; i < dataArray.length; i++) {
         const data = dataArray[i];
         const { choices } = data;
-        if (!choices) {
+        if (!choices?.length) {
           continue
         }
         const lastChoice = choices[choices.length - 1];
