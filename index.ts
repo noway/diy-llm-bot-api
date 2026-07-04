@@ -112,7 +112,13 @@ const MessageSchema = z.object({
 });
 type Message = z.infer<typeof MessageSchema>;
 
-const MessagesSchema = z.array(MessageSchema);
+const MessagesSchema = z.preprocess(
+  (messages) =>
+    Array.isArray(messages)
+      ? messages.filter((m) => (m?.party === "human" || m?.party === "bot") && typeof m?.text === "string")
+      : messages,
+  z.array(MessageSchema)
+);
 
 const BodySchema = z.object({
   messages: MessagesSchema,
