@@ -529,11 +529,14 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
     console.error("error", error);
     try {
       if (!res.headersSent) {
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify({
+        const errorBody = JSON.stringify({
           success: false,
           error: { message: (error as Error).message },
-        }));
+        });
+        res.removeHeader("Transfer-Encoding");
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Content-Length", Buffer.byteLength(errorBody));
+        res.write(errorBody);
       } else if (!res.writableEnded) {
         res.end();
       }
