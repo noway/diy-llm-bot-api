@@ -106,7 +106,6 @@ const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
 const MessageSchema = z.object({
   text: z.string().max(MAX_MESSAGE_LENGTH),
-  name: z.enum(["You", "Bot"]),
   party: z.enum(["bot", "human"]),
   id: z.string(),
 });
