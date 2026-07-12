@@ -654,10 +654,6 @@ const httpsServer = https
     },
     requestListener
   )
-  .on('error', (_err: Error, _req: http.IncomingMessage, res: http.ServerResponse) => {
-    res.writeHead(500, { "Content-Type": "text/plain" });
-    res.end("Internal server error");
-  })
   .listen(port);
 console.log(`Server running on port ${port}`);
 
