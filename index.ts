@@ -99,6 +99,7 @@ interface Choice {
 }
 
 const MAX_MESSAGE_LENGTH = 4000;
+const SLIDING_WINDOW_MESSAGES = 25;
 // Hard cap on the raw request body. The sliding window keeps 25 messages of at
 // most MAX_MESSAGE_LENGTH chars each, so 256KB leaves generous JSON headroom
 // while preventing an unbounded body from buffering in memory.
@@ -172,7 +173,7 @@ function chunkToDataArray<T = Data>(chunkString: string): T[] {
 }
 
 function generatePrompt(messages: Message[]) {
-  messages = messages.slice(-25); // sliding window
+  messages = messages.slice(-SLIDING_WINDOW_MESSAGES);
 
   let prompt = `Hello, I am a chatbot powered by GPT-3. You can ask me anything and I will try my best to answer your questions.
 
@@ -352,7 +353,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
       role: "system",
       content: "You are a helpful AI language model assistant.",
     }] : []),
-    ...messages.map((m) => ({
+    ...messages.slice(-SLIDING_WINDOW_MESSAGES).map((m) => ({
       role: m.party === "human" ? "user" : "assistant",
       content: m.text,
     })),
