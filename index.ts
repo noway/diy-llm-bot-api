@@ -108,7 +108,6 @@ const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 const MessageSchema = z.object({
   text: z.string(),
   party: z.enum(["bot", "human"]),
-  id: z.string(),
 }).refine((m) => m.party !== "human" || m.text.length <= MAX_MESSAGE_LENGTH, {
   error: `human messages are limited to ${MAX_MESSAGE_LENGTH} characters`,
 });
