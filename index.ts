@@ -175,8 +175,6 @@ function chunkToDataArray<T = Data>(chunkString: string): T[] {
 }
 
 function generatePrompt(messages: Message[]) {
-  messages = messages.slice(-SLIDING_WINDOW_MESSAGES);
-
   let prompt = `Hello, I am a chatbot powered by GPT-3. You can ask me anything and I will try my best to answer your questions.
 
 To format my responses with code blocks, you can use the following markdown syntax:
@@ -355,7 +353,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
       role: "system",
       content: "You are a helpful AI language model assistant.",
     }] : []),
-    ...messages.slice(-SLIDING_WINDOW_MESSAGES).map((m) => ({
+    ...messages.map((m) => ({
       role: m.party === "human" ? "user" : "assistant",
       content: m.text,
     })),
@@ -501,14 +499,10 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
     const parsed = JSON.parse(reqBody);
     const body = BodySchema.parse(parsed);
     const authKey = cookies["__Secure-authKey"];
-    const messages = body.messages;
     const model = body.model;
+    const messages = body.messages.slice(-SLIDING_WINDOW_MESSAGES);
+    while (messages[0]?.party === "bot") messages.shift();
     const lastHumanMessage = messages.findLast((m) => m.party === "human");
-    if (messages[0]) {
-      if (messages[0].party !== "human") {
-        throw new Error("Validation error");
-      }
-    }
 
     if (!lastHumanMessage) {
       throw new Error("Validation error: no human message found");
