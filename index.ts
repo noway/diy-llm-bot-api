@@ -240,6 +240,23 @@ class DoubleNewlineReader {
   }
 }
 
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function upstreamHttpError(response: Response): Promise<HttpError> {
+  const text = await response.text();
+  let detail = text;
+  try {
+    detail = JSON.parse(text).error?.message ?? text;
+  } catch {}
+  return new HttpError(502, `Upstream error (HTTP ${response.status}): ${detail}`);
+}
+
 function timeSafeCompare(a: string, b: string) {
   // Brad Hill's Double HMAC pattern
   const key = crypto.randomBytes(32);
@@ -345,7 +362,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
   const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
 
   if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
-    throw new Error("Invalid auth key");
+    throw new HttpError(403, "Invalid auth key");
   }
   const chatMessages = [
     ...(systemMessage === 'custom' ? [{
@@ -373,9 +390,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
   };
   const response = await fetchUpstreamWithRetry(apiUrl, options, signal);
   if (!response.ok) {
-    const text = await response.text();
-    // TODO: send 4xx/5xx status code and don't put error object in text
-    throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
+    throw await upstreamHttpError(response);
   }
   if (!response.body) {
     throw new Error("No response body");
@@ -431,7 +446,7 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
   const promptTokens = encoded.bpe.length;
 
   if (promptTokens >= MAX_TOKENS - TOKENS_SAFETY_MARGIN) {
-    throw new Error("Too many tokens.");
+    throw new HttpError(400, "Too many tokens.");
   }
 
   const temperature = 0.5;
@@ -454,9 +469,7 @@ async function streamInstructCompletion(onChunk: (content: string) => void, mess
   const response = await fetchUpstreamWithRetry(apiUrl, options, signal);
 
   if (!response.ok) {
-    const text = await response.text();
-    // TODO: send 4xx/5xx status code and don't put error object in text
-    throw new Error(`HTTP error! status: ${response.status}. text ${text}`);
+    throw await upstreamHttpError(response);
   }
   if (!response.body) {
     throw new Error("No response body");
@@ -504,7 +517,7 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
     const lastHumanMessage = messages.findLast((m) => m.party === "human");
 
     if (!lastHumanMessage) {
-      throw new Error("Validation error: no human message found");
+      throw new HttpError(400, "Validation error: no human message found");
     }
 
     console.log("model", model);
@@ -534,6 +547,10 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
           success: false,
           error: { message: (error as Error).message },
         });
+        res.statusCode =
+          error instanceof HttpError ? error.status :
+          error instanceof z.ZodError || error instanceof SyntaxError ? 400 :
+          502;
         res.removeHeader("Transfer-Encoding");
         res.setHeader("Content-Type", "application/json");
         res.setHeader("Content-Length", Buffer.byteLength(errorBody));
