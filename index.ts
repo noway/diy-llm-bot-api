@@ -4,13 +4,21 @@ import https from "https";
 import { z } from "zod";
 type Cookies = Record<string, string | undefined>;
 
+function safeDecode(str: string): string {
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    return str;
+  }
+}
+
 function parseCookie(str: string): Cookies {
   const cookies: Cookies = {};
   for (const raw of str.split(';')) {
     const pair = raw.trim();
     const eqIdx = pair.indexOf('=');
     if (eqIdx < 1) continue;
-    cookies[decodeURIComponent(pair.slice(0, eqIdx))] = decodeURIComponent(pair.slice(eqIdx + 1));
+    cookies[safeDecode(pair.slice(0, eqIdx))] = safeDecode(pair.slice(eqIdx + 1));
   }
   return cookies;
 }
