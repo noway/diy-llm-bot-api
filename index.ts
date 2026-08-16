@@ -321,6 +321,7 @@ interface ModelConfig {
   bearerToken: string | undefined
   apiUrl: string
   stop: string | undefined
+  streaming: boolean
   authed: boolean
 }
 
@@ -334,6 +335,7 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.DEEPINFRA_BEARER_TOKEN,
         apiUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
         stop: "END_OF_STREAM",
+        streaming: true,
         authed,
       }
     case "together":
@@ -343,6 +345,7 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.TOGETHER_BEARER_TOKEN,
         apiUrl: "https://api.together.xyz/v1/chat/completions",
         stop: "<|eot_id|>",
+        streaming: true,
         authed,
       }
     case "openrouter":
@@ -352,22 +355,26 @@ function getModelConfig(model: Model): ModelConfig {
         bearerToken: secrets.OPENROUTER_BEARER_TOKEN,
         apiUrl: "https://openrouter.ai/api/v1/chat/completions",
         stop: "END_OF_STREAM",
+        streaming: true,
         authed,
       }
-    case "openai":
+    case "openai": {
+      const streaming = !NON_STREAMING_MODELS.has(model);
       return {
         apiType: model === "gpt-3.5-turbo-instruct" ? 'instruct' : 'chat',
         systemMessage: model === "o1-preview" || model === "o1-mini" ? 'default' : 'custom',
         bearerToken: secrets.BEARER_TOKEN,
         apiUrl: model === "gpt-3.5-turbo-instruct" ? "https://api.openai.com/v1/completions" : "https://api.openai.com/v1/chat/completions",
-        stop: NON_STREAMING_MODELS.has(model) ? undefined : "END_OF_STREAM",
+        stop: streaming ? "END_OF_STREAM" : undefined,
+        streaming,
         authed,
       }
+    }
   }
 }
 
 async function streamChatCompletion(onChunk: (content: string) => void, authKey: string | undefined, messages: Message[], model: Model, modelConfig: ModelConfig, signal: AbortSignal) {
-  const { systemMessage, bearerToken, stop, apiUrl, authed } = modelConfig;
+  const { systemMessage, bearerToken, stop, apiUrl, streaming, authed } = modelConfig;
 
   if (authed && !timeSafeCompare(authKey ?? "", secrets.AUTH_KEY ?? "")) {
     throw new HttpError(403, "Invalid auth key");
@@ -391,7 +398,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
     body: JSON.stringify({
       model,
       messages: chatMessages,
-      stream: !NON_STREAMING_MODELS.has(model),
+      stream: streaming,
       stop,
     }),
     signal,
@@ -404,7 +411,7 @@ async function streamChatCompletion(onChunk: (content: string) => void, authKey:
     throw new Error("No response body");
   }
 
-  if (NON_STREAMING_MODELS.has(model)) {
+  if (!streaming) {
     const result = await response.text()
     const data = JSON.parse(result)
     const completion = data.choices[0].message.content
