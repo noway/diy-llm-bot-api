@@ -682,13 +682,21 @@ const httpsServer = https
     },
     requestListener
   )
-  .listen(port);
-console.log(`Server running on port ${port}`);
+  .listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
 
 const httpServer = http.createServer((_req, res) => {
   res.writeHead(403, { "Content-Type": "text/plain" });
   res.end("Forbidden");
 }).listen(httpPort);
+
+for (const server of [httpsServer, httpServer]) {
+  server.on("error", (error) => {
+    console.error(`FATAL: ${error.message}`);
+    process.exit(1);
+  });
+}
 
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, closing servers');
