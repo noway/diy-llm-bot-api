@@ -275,6 +275,7 @@ function timeSafeCompare(a: string, b: string) {
 
 const UPSTREAM_MAX_ATTEMPTS = 3;
 const UPSTREAM_RETRY_BASE_DELAY_MS = 300;
+const UPSTREAM_RETRY_MAX_DELAY_MS = 5000;
 
 function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -297,10 +298,12 @@ async function fetchUpstreamWithRetry(apiUrl: string, options: RequestInit, sign
     const lastAttempt = attempt === UPSTREAM_MAX_ATTEMPTS;
     try {
       const response = await fetch(apiUrl, options);
-      if (response.status >= 500 && !lastAttempt) {
+      if ((response.status >= 500 || response.status === 429) && !lastAttempt) {
         console.warn(`upstream returned ${response.status}, retrying (attempt ${attempt}/${UPSTREAM_MAX_ATTEMPTS})`);
         await response.body?.cancel();
-        await abortableDelay(UPSTREAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), signal);
+        const retryAfterMs = Number(response.headers.get("retry-after")) * 1000;
+        const backoffMs = UPSTREAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        await abortableDelay(Math.min(Math.max(retryAfterMs || 0, backoffMs), UPSTREAM_RETRY_MAX_DELAY_MS), signal);
         continue;
       }
       return response;
