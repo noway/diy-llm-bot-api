@@ -81,28 +81,9 @@ const MODELS = Object.keys(MODEL_SETTINGS) as Model[];
 
 const NON_STREAMING_MODELS = new Set<Model>(["o1-preview", "o1-mini", "gpt-5"]);
 
-interface TopLogProb {
-  token: string;
-  logprob: number;
-  selected?: boolean;
-}
-
-interface LogProbContent {
-  token: string;
-  logprob: number;
-  bytes: number[];
-  top_logprobs: TopLogProb[];
-}
-
-interface Logprobs {
-  content: LogProbContent[];
-  refusal: string | null;
-}
-
 interface Choice {
   text: string;
   index: number;
-  logprobs?: Logprobs;
   finish_reason: string;
 }
 
