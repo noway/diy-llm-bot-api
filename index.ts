@@ -542,9 +542,10 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
     console.error("error", error);
     try {
       if (!res.headersSent) {
+        const message = error instanceof z.ZodError ? z.prettifyError(error) : (error as Error).message;
         const errorBody = JSON.stringify({
           success: false,
-          error: { message: (error as Error).message },
+          error: { message },
         });
         res.statusCode =
           error instanceof HttpError ? error.status :
