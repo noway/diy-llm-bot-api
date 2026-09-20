@@ -2,6 +2,9 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 import { z } from "zod";
+import GPT3Tokenizer from "gpt3-tokenizer";
+import crypto from "crypto";
+import secrets from "./secrets.json" with { type: "json" };
 type Cookies = Record<string, string | undefined>;
 
 function safeDecode(str: string): string {
@@ -22,9 +25,6 @@ function parseCookie(str: string): Cookies {
   }
   return cookies;
 }
-import GPT3Tokenizer from "gpt3-tokenizer";
-import crypto from "crypto";
-import secrets from "./secrets.json" with { type: "json" };
 
 const REQUIRED_SECRETS = [
   "AUTH_KEY",
