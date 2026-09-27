@@ -556,13 +556,13 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
         res.setHeader("Content-Length", Buffer.byteLength(errorBody));
         res.write(errorBody);
       } else if (!res.writableEnded) {
-        res.end();
+        res.destroy();
       }
     } catch (e) {
       console.error("e", e);
       // do nothing
     } finally {
-      if (!res.writableEnded) {
+      if (!res.writableEnded && !res.destroyed) {
         res.end();
       }
     }
