@@ -279,7 +279,7 @@ async function fetchUpstreamWithRetry(apiUrl: string, options: RequestInit, sign
     const lastAttempt = attempt === UPSTREAM_MAX_ATTEMPTS;
     try {
       const response = await fetch(apiUrl, options);
-      if ((response.status >= 500 || response.status === 429) && !lastAttempt) {
+      if ((response.status >= 500 || response.status === 429 || response.status === 408) && !lastAttempt) {
         console.warn(`upstream returned ${response.status}, retrying (attempt ${attempt}/${UPSTREAM_MAX_ATTEMPTS})`);
         await response.body?.cancel();
         const retryAfterMs = Number(response.headers.get("retry-after")) * 1000;
