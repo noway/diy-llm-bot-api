@@ -503,7 +503,12 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
   res.on("close", () => ac.abort());
   try {
     const cookies = CookiesSchema.parse(reqCookies);
-    const parsed = JSON.parse(reqBody);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(reqBody);
+    } catch (error) {
+      throw new HttpError(400, (error as Error).message);
+    }
     const body = BodySchema.parse(parsed);
     const authKey = cookies["__Secure-authKey"];
     const model = body.model;
@@ -545,7 +550,7 @@ async function postGenerateChatCompletionStreaming(reqCookies: Cookies, res: htt
         });
         res.statusCode =
           error instanceof HttpError ? error.status :
-          error instanceof z.ZodError || error instanceof SyntaxError ? 400 :
+          error instanceof z.ZodError ? 400 :
           502;
         res.removeHeader("Transfer-Encoding");
         res.setHeader("Content-Type", "application/json");
