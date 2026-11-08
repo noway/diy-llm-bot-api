@@ -655,6 +655,10 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
       await postGenerateChatCompletionStreaming(reqCookies, res, Buffer.concat(reqBody).toString());
     });
   }
+  else if (req.url === "/is-authed" || req.url === "/generate-chat-completion-streaming") {
+    res.writeHead(405, { "Content-Type": "text/plain", Allow: "POST, OPTIONS" });
+    res.end("Method not allowed");
+  }
   else {
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not found");
