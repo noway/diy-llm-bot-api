@@ -656,6 +656,7 @@ const requestListener = (req: http.IncomingMessage, res: http.ServerResponse) =>
     });
   }
   else if (req.url === "/is-authed" || req.url === "/generate-chat-completion-streaming") {
+    setCors(req, res);
     res.writeHead(405, { "Content-Type": "text/plain", Allow: "POST, OPTIONS" });
     res.end("Method not allowed");
   }
